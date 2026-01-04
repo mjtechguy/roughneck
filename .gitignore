@@ -5,14 +5,16 @@
 *.tfstate.backup
 
 # Per-deployment files (state, keys, inventory)
-# Exclude all deployment folders except examples/
 deployments/*/
 !deployments/examples/
 
 # Python
 __pycache__/
 *.pyc
-lib/__pycache__/
+.venv/
+
+# UV
+uv.lock
 
 # OS
 .DS_Store
