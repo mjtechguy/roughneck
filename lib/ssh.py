@@ -62,6 +62,9 @@ def connect(name: str, user: str = None) -> bool:
     args.extend(["-o", "StrictHostKeyChecking=accept-new"])
     args.append(f"{user}@{ip}")
 
+    # Show the command being run
+    print(f"Running: {' '.join(args)}")
+
     # Replace current process with ssh
     os.execvp("ssh", args)
     return True  # Never reached
