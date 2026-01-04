@@ -1,0 +1,42 @@
+---
+- name: Check if Go is installed
+  stat:
+    path: /usr/local/go/bin/go
+  register: go_installed
+
+- name: Download Go {{ go_version }}
+  get_url:
+    url: "https://go.dev/dl/go{{ go_version }}.linux-amd64.tar.gz"
+    dest: /tmp/go.tar.gz
+    mode: "0644"
+  when: not go_installed.stat.exists
+
+- name: Remove old Go installation
+  file:
+    path: /usr/local/go
+    state: absent
+  when: not go_installed.stat.exists
+
+- name: Extract Go
+  unarchive:
+    src: /tmp/go.tar.gz
+    dest: /usr/local
+    remote_src: true
+  when: not go_installed.stat.exists
+
+- name: Add Go to PATH
+  copy:
+    content: |
+      export PATH=$PATH:/usr/local/go/bin
+      export PATH=$PATH:$HOME/go/bin
+      export GOPATH=$HOME/go
+    dest: /etc/profile.d/golang.sh
+    mode: "0644"
+
+- name: Create go directory for gastown user
+  file:
+    path: "/home/{{ gastown_user }}/go/bin"
+    state: directory
+    owner: "{{ gastown_user }}"
+    group: "{{ gastown_user }}"
+    mode: "0755"

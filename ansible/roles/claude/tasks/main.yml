@@ -1,0 +1,55 @@
+---
+- name: Download Node.js 22.x setup script
+  get_url:
+    url: https://deb.nodesource.com/setup_22.x
+    dest: /tmp/nodesource_setup.sh
+    mode: "0755"
+
+- name: Run NodeSource setup
+  command: /tmp/nodesource_setup.sh
+  args:
+    creates: /etc/apt/sources.list.d/nodesource.list
+
+- name: Install Node.js
+  apt:
+    name: nodejs
+    state: present
+    update_cache: true
+
+- name: Install Claude Code CLI via npm
+  npm:
+    name: "@anthropic-ai/claude-code"
+    global: true
+    state: present
+
+- name: Create Claude config directory
+  file:
+    path: "/home/{{ gastown_user }}/.claude"
+    state: directory
+    owner: "{{ gastown_user }}"
+    group: "{{ gastown_user }}"
+    mode: "0700"
+  when: anthropic_api_key | length > 0
+
+- name: Configure Anthropic API key
+  copy:
+    content: "{{ anthropic_api_key }}"
+    dest: "/home/{{ gastown_user }}/.claude/api_key"
+    owner: "{{ gastown_user }}"
+    group: "{{ gastown_user }}"
+    mode: "0600"
+  when: anthropic_api_key | length > 0
+
+- name: Add ANTHROPIC_API_KEY to environment
+  lineinfile:
+    path: "/home/{{ gastown_user }}/.bashrc"
+    line: 'export ANTHROPIC_API_KEY="$(cat ~/.claude/api_key 2>/dev/null)"'
+    create: true
+    owner: "{{ gastown_user }}"
+    group: "{{ gastown_user }}"
+  when: anthropic_api_key | length > 0
+
+- name: Note about manual Claude login
+  debug:
+    msg: "NOTE: API key not provided. Run 'claude login' after deployment to authenticate."
+  when: anthropic_api_key | length == 0

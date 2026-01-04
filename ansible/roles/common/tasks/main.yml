@@ -1,0 +1,53 @@
+---
+- name: Update apt cache
+  apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install base packages
+  apt:
+    name:
+      - build-essential
+      - curl
+      - wget
+      - jq
+      - unzip
+      - python3
+      - python3-pip
+      - python3-venv
+      - ca-certificates
+      - gnupg
+    state: present
+
+- name: Create gastown user
+  user:
+    name: "{{ gastown_user }}"
+    shell: /bin/bash
+    create_home: true
+    groups: sudo
+    append: true
+
+- name: Allow gastown user passwordless sudo
+  lineinfile:
+    path: /etc/sudoers.d/gastown
+    line: "{{ gastown_user }} ALL=(ALL) NOPASSWD:ALL"
+    create: true
+    mode: "0440"
+    validate: "visudo -cf %s"
+
+- name: Create .ssh directory for gastown user
+  file:
+    path: "/home/{{ gastown_user }}/.ssh"
+    state: directory
+    owner: "{{ gastown_user }}"
+    group: "{{ gastown_user }}"
+    mode: "0700"
+
+- name: Copy authorized_keys to gastown user
+  copy:
+    src: /root/.ssh/authorized_keys
+    dest: "/home/{{ gastown_user }}/.ssh/authorized_keys"
+    remote_src: true
+    owner: "{{ gastown_user }}"
+    group: "{{ gastown_user }}"
+    mode: "0600"

@@ -1,0 +1,527 @@
+#!/usr/bin/env python3
+"""Roughneck - Deploy cloud nodes for Gas Town."""
+
+import sys
+import os
+
+# Add lib to path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from lib import cli, config, terraform, ansible, ssh
+
+
+def check_prerequisites() -> bool:
+    """Check that required tools are installed."""
+    missing = []
+
+    if not terraform.find_terraform_cmd():
+        missing.append("tofu or terraform")
+
+    if not ansible.find_ansible_cmd():
+        missing.append("ansible-playbook")
+
+    if missing:
+        cli.error(f"Missing required tools: {', '.join(missing)}")
+        return False
+    return True
+
+
+def prompt_new_config(name: str) -> config.DeploymentConfig:
+    """Interactively prompt for deployment configuration."""
+    cfg = config.DeploymentConfig()
+
+    cli.header("Configuration")
+
+    # Provider selection (first)
+    cfg.provider = cli.prompt_choice(
+        "Cloud provider:",
+        [
+            ("hetzner", "Hetzner Cloud"),
+            ("aws", "Amazon Web Services"),
+            ("digitalocean", "DigitalOcean"),
+        ],
+        default=1,
+    )
+
+    # Provider-specific prompts
+    print()
+    if cfg.provider == "hetzner":
+        cfg.hetzner_token = cli.prompt_password("Hetzner API token")
+        cfg.hetzner_location = cli.prompt_choice(
+            "Datacenter location:",
+            [
+                ("fsn1", "Falkenstein, Germany (EU)"),
+                ("nbg1", "Nuremberg, Germany (EU)"),
+                ("hel1", "Helsinki, Finland (EU)"),
+                ("ash", "Ashburn, Virginia (US East)"),
+                ("hil", "Hillsboro, Oregon (US West)"),
+            ],
+            default=1,
+        )
+        # Server types vary by location - CX series available everywhere
+        if cfg.hetzner_location in ("ash", "hil"):
+            cfg.hetzner_server_type = cli.prompt_choice(
+                "Server type:",
+                [
+                    ("cx22", "CX22 - 2 vCPU, 4GB RAM"),
+                    ("cx32", "CX32 - 4 vCPU, 8GB RAM"),
+                    ("cx42", "CX42 - 8 vCPU, 16GB RAM"),
+                    ("cx52", "CX52 - 16 vCPU, 32GB RAM"),
+                ],
+                default=2,
+            )
+        else:
+            cfg.hetzner_server_type = cli.prompt_choice(
+                "Server type:",
+                [
+                    ("cx22", "CX22 - 2 vCPU, 4GB RAM (shared)"),
+                    ("cx32", "CX32 - 4 vCPU, 8GB RAM (shared)"),
+                    ("cpx31", "CPX31 - 4 vCPU, 8GB RAM (AMD)"),
+                    ("cax21", "CAX21 - 4 vCPU, 8GB RAM (ARM)"),
+                    ("ccx23", "CCX23 - 4 vCPU, 16GB RAM (dedicated)"),
+                ],
+                default=2,
+            )
+    elif cfg.provider == "aws":
+        cfg.aws_access_key = cli.prompt_password("AWS Access Key")
+        cfg.aws_secret_key = cli.prompt_password("AWS Secret Key")
+        cfg.aws_instance_type = cli.prompt("Instance type (t3.micro, t3.medium, t3.large)", default="t3.medium")
+        cfg.aws_region = cli.prompt("Region (us-east-1, us-west-2, eu-west-1)", default="us-east-1")
+    elif cfg.provider == "digitalocean":
+        cfg.digitalocean_token = cli.prompt_password("DigitalOcean token")
+        cfg.digitalocean_size = cli.prompt("Droplet size (s-1vcpu-1gb, s-2vcpu-4gb)", default="s-2vcpu-4gb")
+        cfg.digitalocean_region = cli.prompt("Region (nyc1, sfo3, ams3, lon1)", default="nyc1")
+
+    # Common fields
+    print()
+    cfg.project_name = cli.prompt("Project name", default=name)
+    cfg.git_user_name = cli.prompt("Git user name")
+    cfg.git_user_email = cli.prompt_email("Git user email")
+
+    # SSH key
+    print()
+    ssh_choice = cli.prompt_choice(
+        "SSH key:",
+        [
+            ("generate", "Generate new key pair"),
+            ("existing", "Use existing key"),
+        ],
+        default=1,
+    )
+    if ssh_choice == "existing":
+        cfg.ssh_public_key_path = cli.prompt("Path to public key", default="~/.ssh/id_rsa.pub")
+    else:
+        cfg.ssh_public_key_path = ""
+
+    # Firewall config
+    print()
+    cfg.enable_firewall = cli.prompt_bool("Enable firewall?", default=True)
+    if cfg.enable_firewall:
+        allowed_ips_str = cli.prompt(
+            "Allowed IPs (comma-separated CIDRs, blank for all)",
+            required=False,
+        )
+        if allowed_ips_str:
+            cfg.firewall_allowed_ips = [ip.strip() for ip in allowed_ips_str.split(",") if ip.strip()]
+        else:
+            cfg.firewall_allowed_ips = []
+
+    # Gas Town config
+    print()
+    cfg.gastown_repo = cli.prompt(
+        "Gas Town repo",
+        default="https://github.com/steveyegge/gastown.git",
+    )
+    cfg.gastown_branch = cli.prompt("Gas Town branch", default="main")
+
+    # Claude config
+    print()
+    cfg.anthropic_api_key = cli.prompt_password("Claude API key (blank for manual login)", required=False)
+
+    # Services
+    cfg.enable_systemd_services = cli.prompt_bool("Enable systemd services?", default=False)
+
+    return cfg
+
+
+def show_summary(name: str, cfg: config.DeploymentConfig) -> None:
+    """Show deployment summary."""
+    cli.header("Summary")
+    print(f"  Deployment:  {cli.bold(name)}")
+    print(f"  Provider:    {cfg.provider}")
+    print(f"  Project:     {cfg.project_name}")
+
+    # Provider-specific server info
+    if cfg.provider == "hetzner":
+        print(f"  Server:      {cfg.hetzner_server_type} in {cfg.hetzner_location}")
+    elif cfg.provider == "aws":
+        print(f"  Instance:    {cfg.aws_instance_type} in {cfg.aws_region}")
+    elif cfg.provider == "digitalocean":
+        print(f"  Droplet:     {cfg.digitalocean_size} in {cfg.digitalocean_region}")
+
+    print(f"  SSH key:     {'Generate new' if not cfg.ssh_public_key_path else cfg.ssh_public_key_path}")
+
+    if cfg.enable_firewall:
+        if cfg.firewall_allowed_ips:
+            print(f"  Firewall:    Restricted to {', '.join(cfg.firewall_allowed_ips)}")
+        else:
+            print(f"  Firewall:    Enabled (allow all)")
+    else:
+        print(f"  Firewall:    Disabled")
+
+    print(f"  Gas Town:    {cfg.gastown_repo} @ {cfg.gastown_branch}")
+    print(f"  Claude:      {'API key provided' if cfg.anthropic_api_key else 'Manual login'}")
+    print(f"  Systemd:     {'Enabled' if cfg.enable_systemd_services else 'Disabled'}")
+    print()
+
+
+def cmd_new(name: str = None) -> int:
+    """Create and deploy a new deployment."""
+    if not check_prerequisites():
+        return 1
+
+    # Get deployment name
+    if not name:
+        name = cli.prompt("Deployment name")
+
+    if config.deployment_exists(name):
+        cli.error(f"Deployment '{name}' already exists")
+        print(f"  Use: ./roughneck deploy {name}")
+        return 1
+
+    # Get configuration
+    cfg = prompt_new_config(name)
+
+    # Show summary
+    show_summary(name, cfg)
+
+    if not cli.confirm("Proceed with deployment?"):
+        print("Aborted.")
+        return 0
+
+    # Save config
+    config.write_tfvars(name, cfg)
+    cli.success(f"Configuration saved to deployments/{name}/terraform.tfvars")
+
+    # Deploy
+    return do_deploy(name)
+
+
+def recovery_menu(stage: str, name: str) -> str:
+    """Show recovery options after failure. Returns action to take."""
+    options = [("retry", "Retry")]
+
+    if stage in ("apply", "ansible"):
+        options.append(("edit", "Edit configuration"))
+
+    if stage in ("apply", "ssh"):
+        options.append(("skip", "Skip to next step"))
+
+    options.append(("abort", "Abort (keep current state)"))
+
+    return cli.prompt_choice(f"\n{stage.title()} failed. What would you like to do?", options)
+
+
+def run_stage(stage: str, name: str) -> bool:
+    """Run a single deployment stage. Returns True on success."""
+    if stage == "init":
+        print("Initializing Terraform...")
+        return terraform.init(name)
+    elif stage == "apply":
+        print("Applying Terraform configuration...")
+        return terraform.apply(name)
+    elif stage == "ssh":
+        ip = config.get_deployment_ip(name)
+        if ip:
+            print(f"Waiting for SSH on {ip}...")
+            return ssh.wait_for_ssh(ip)
+        return True  # No IP means skip
+    elif stage == "ansible":
+        print("Running Ansible playbook...")
+        return ansible.run_playbook(name)
+    return False
+
+
+def do_deploy(name: str) -> int:
+    """Run terraform and ansible for a deployment with recovery support."""
+
+    # Smart resume: check what's already done
+    ip = config.get_deployment_ip(name)
+    if ip and ssh.is_reachable(ip):
+        cli.info(f"Server {ip} already running, skipping to configuration...")
+        stages = ["ansible"]
+    elif ip:
+        cli.info(f"Server {ip} exists but not reachable, waiting for SSH...")
+        stages = ["ssh", "ansible"]
+    elif config.has_state_file(name):
+        cli.info("Partial state found, resuming terraform apply...")
+        stages = ["apply", "ssh", "ansible"]
+    else:
+        cli.header("Provisioning Infrastructure")
+        stages = ["init", "apply", "ssh", "ansible"]
+
+    stage_idx = 0
+    while stage_idx < len(stages):
+        stage = stages[stage_idx]
+
+        if run_stage(stage, name):
+            # Success - move to next stage
+            if stage == "apply":
+                cli.success("Infrastructure provisioned")
+            elif stage == "ansible":
+                cli.success("Server configured")
+            stage_idx += 1
+        else:
+            # Failure - show recovery menu
+            cli.error(f"{stage.title()} failed")
+            action = recovery_menu(stage, name)
+
+            if action == "retry":
+                continue  # Retry same stage
+            elif action == "edit":
+                tfvars_path = config.get_tfvars_path(name)
+                cli.open_editor(tfvars_path)
+                print()
+                continue  # Retry after edit
+            elif action == "skip":
+                stage_idx += 1  # Move to next stage
+            else:  # abort
+                cli.info("Deployment paused. Run './roughneck deploy' to resume.")
+                return 1
+
+    # Done
+    ip = config.get_deployment_ip(name)
+    cli.header("Deployment Complete")
+    ssh_cmd = ssh.get_ssh_command(name)
+    if ssh_cmd:
+        print(f"  SSH: {cli.cyan(ssh_cmd)}")
+    if ip:
+        print(f"  IP:  {ip}")
+    print()
+
+    return 0
+
+
+def cmd_deploy(name: str = None) -> int:
+    """Deploy an existing deployment."""
+    if not check_prerequisites():
+        return 1
+
+    # Get deployment name
+    if not name:
+        deployments = config.list_deployments()
+        if not deployments:
+            cli.error("No deployments found")
+            print("  Create one with: ./roughneck new")
+            return 1
+        name = cli.select_from_list("Select deployment:", deployments)
+        if not name:
+            return 1
+
+    if not config.deployment_exists(name):
+        cli.error(f"Deployment '{name}' not found")
+        print("  Create it with: ./roughneck new")
+        return 1
+
+    return do_deploy(name)
+
+
+def cmd_destroy(name: str = None) -> int:
+    """Destroy a deployment."""
+    if not check_prerequisites():
+        return 1
+
+    # Get deployment name
+    if not name:
+        deployments = config.list_deployments()
+        if not deployments:
+            cli.error("No deployments found")
+            return 1
+        name = cli.select_from_list("Select deployment to destroy:", deployments)
+        if not name:
+            return 1
+
+    if not config.deployment_exists(name):
+        cli.error(f"Deployment '{name}' not found")
+        return 1
+
+    cli.header(f"Destroy: {name}")
+    ip = config.get_deployment_ip(name)
+    provider = config.get_deployment_provider(name)
+    if provider:
+        print(f"  Provider:  {provider}")
+    if ip:
+        print(f"  Server IP: {ip}")
+    print()
+
+    cli.warn("This will destroy all infrastructure!")
+    if not cli.confirm("Are you sure?", default=False):
+        print("Aborted.")
+        return 0
+
+    cli.header("Destroying Infrastructure")
+
+    if not terraform.destroy(name):
+        cli.error("Terraform destroy failed")
+        return 1
+
+    # Clean up deployment folder
+    config.delete_deployment(name)
+    cli.success(f"Deployment '{name}' destroyed")
+
+    return 0
+
+
+def cmd_list() -> int:
+    """List all deployments."""
+    cli.header("Deployments")
+
+    deployments = config.list_deployments()
+    if not deployments:
+        print("  No deployments found.")
+        print()
+        print("  Create one with: ./roughneck new")
+        print()
+        return 0
+
+    for name in deployments:
+        ip = config.get_deployment_ip(name)
+        provider = config.get_deployment_provider(name) or "unknown"
+        if ip:
+            print(f"  {name} ({provider}): {cli.green(ip)}")
+        else:
+            print(f"  {name} ({provider}): {cli.yellow('(not deployed)')}")
+
+    print()
+    return 0
+
+
+def cmd_ssh(name: str = None) -> int:
+    """SSH to a deployment."""
+    # Get deployment name
+    if not name:
+        deployments = config.list_deployments()
+        deployed = [d for d in deployments if config.get_deployment_ip(d)]
+        if not deployed:
+            cli.error("No deployed servers found")
+            return 1
+        name = cli.select_from_list("Select deployment:", deployed)
+        if not name:
+            return 1
+
+    if not config.get_deployment_ip(name):
+        cli.error(f"Deployment '{name}' has no IP (not deployed?)")
+        return 1
+
+    # This will exec ssh and not return
+    if not ssh.connect(name):
+        cli.error("Failed to connect")
+        return 1
+
+    return 0
+
+
+def cmd_edit(name: str = None) -> int:
+    """Edit a deployment's configuration."""
+    # Get deployment name
+    if not name:
+        deployments = config.list_deployments()
+        if not deployments:
+            cli.error("No deployments found")
+            return 1
+        name = cli.select_from_list("Select deployment to edit:", deployments)
+        if not name:
+            return 1
+
+    if not config.deployment_exists(name):
+        cli.error(f"Deployment '{name}' not found")
+        return 1
+
+    tfvars_path = config.get_tfvars_path(name)
+    cli.info(f"Editing {tfvars_path}")
+    if cli.open_editor(tfvars_path):
+        cli.success("Configuration saved")
+        if cli.confirm("Deploy now?", default=False):
+            return do_deploy(name)
+    return 0
+
+
+def interactive_menu() -> int:
+    """Show interactive menu."""
+    action = cli.menu(
+        "Roughneck",
+        [
+            ("new", "Create new deployment"),
+            ("deploy", "Deploy existing"),
+            ("edit", "Edit configuration"),
+            ("destroy", "Destroy deployment"),
+            ("list", "List deployments"),
+            ("ssh", "SSH to deployment"),
+        ],
+    )
+
+    if action == "new":
+        return cmd_new()
+    elif action == "deploy":
+        return cmd_deploy()
+    elif action == "edit":
+        return cmd_edit()
+    elif action == "destroy":
+        return cmd_destroy()
+    elif action == "list":
+        return cmd_list()
+    elif action == "ssh":
+        return cmd_ssh()
+    return 0
+
+
+def main() -> int:
+    """Main entry point."""
+    args = sys.argv[1:]
+
+    # No args = interactive menu
+    if not args:
+        return interactive_menu()
+
+    cmd = args[0]
+    name = args[1] if len(args) > 1 else None
+
+    if cmd == "new":
+        return cmd_new(name)
+    elif cmd == "deploy":
+        return cmd_deploy(name)
+    elif cmd == "edit":
+        return cmd_edit(name)
+    elif cmd == "destroy":
+        return cmd_destroy(name)
+    elif cmd == "list":
+        return cmd_list()
+    elif cmd == "ssh":
+        return cmd_ssh(name)
+    elif cmd in ("-h", "--help", "help"):
+        print("Usage: roughneck [command] [name]")
+        print()
+        print("Commands:")
+        print("  new [name]      Create new deployment")
+        print("  deploy [name]   Deploy existing (with recovery)")
+        print("  edit [name]     Edit deployment configuration")
+        print("  destroy [name]  Destroy deployment")
+        print("  list            List deployments")
+        print("  ssh [name]      SSH to deployment")
+        print()
+        print("Supported providers: hetzner, aws, digitalocean")
+        print()
+        print("Run without arguments for interactive menu.")
+        return 0
+    else:
+        cli.error(f"Unknown command: {cmd}")
+        print("  Run ./roughneck --help for usage")
+        return 1
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except KeyboardInterrupt:
+        print("\nAborted.")
+        sys.exit(1)

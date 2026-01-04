@@ -1,0 +1,93 @@
+# Variables for DigitalOcean deployment
+
+# These are in tfvars but credentials passed via env vars
+variable "provider_name" {
+  description = "Cloud provider (unused, read from tfvars by Python)"
+  type        = string
+  default     = "digitalocean"
+}
+
+variable "digitalocean_token" {
+  description = "DigitalOcean token (unused, passed via DIGITALOCEAN_TOKEN env var)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "deployment_dir" {
+  description = "Path to deployment-specific directory"
+  type        = string
+}
+
+variable "project_name" {
+  description = "Project name for resource naming"
+  type        = string
+}
+
+variable "git_user_name" {
+  description = "Git user.name for commits"
+  type        = string
+}
+
+variable "git_user_email" {
+  description = "Git user.email for commits"
+  type        = string
+}
+
+variable "ssh_public_key_path" {
+  description = "Path to existing SSH public key. Leave empty to generate."
+  type        = string
+  default     = ""
+}
+
+# DigitalOcean-specific
+variable "digitalocean_size" {
+  description = "DigitalOcean droplet size (s-1vcpu-1gb, s-2vcpu-4gb, etc.)"
+  type        = string
+  default     = "s-2vcpu-4gb"
+}
+
+variable "digitalocean_region" {
+  description = "DigitalOcean region (nyc1, nyc3, sfo3, ams3, lon1, fra1, etc.)"
+  type        = string
+  default     = "nyc1"
+}
+
+# Firewall
+variable "enable_firewall" {
+  description = "Enable DigitalOcean Cloud Firewall"
+  type        = bool
+  default     = true
+}
+
+variable "firewall_allowed_ips" {
+  description = "List of IPs/CIDRs allowed to access all ports"
+  type        = list(string)
+  default     = []
+}
+
+# Gas Town
+variable "gastown_repo" {
+  description = "Gas Town git repository URL"
+  type        = string
+  default     = "https://github.com/steveyegge/gastown.git"
+}
+
+variable "gastown_branch" {
+  description = "Gas Town git branch"
+  type        = string
+  default     = "main"
+}
+
+variable "anthropic_api_key" {
+  description = "Anthropic API key for Claude"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "enable_systemd_services" {
+  description = "Enable systemd services"
+  type        = bool
+  default     = false
+}

@@ -1,0 +1,39 @@
+---
+- name: Deploy Gas Town
+  hosts: gastown
+  become: true
+
+  vars:
+    gastown_user: gastown
+    go_version: "1.23.4"
+
+  roles:
+    - common
+    - golang
+    - git
+    - tmux
+    - beads
+    - claude
+    - gastown
+    - role: systemd
+      when: enable_systemd_services | bool
+
+  post_tasks:
+    - name: Display completion message
+      debug:
+        msg: |
+
+          ========================================
+          Gas Town deployment complete!
+          ========================================
+
+          Connect as gastown user:
+            ssh -i {{ ansible_ssh_private_key_file }} gastown@{{ inventory_hostname }}
+
+          {% if not anthropic_api_key %}
+          NOTE: Run 'claude login' to authenticate Claude Code CLI
+          {% endif %}
+
+          Start Gas Town:
+            cd ~/gt && gt start
+

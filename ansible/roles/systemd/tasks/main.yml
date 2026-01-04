@@ -1,0 +1,60 @@
+---
+- name: Create Gas Town Mayor service
+  copy:
+    content: |
+      [Unit]
+      Description=Gas Town Mayor Service
+      After=network.target
+
+      [Service]
+      Type=simple
+      User={{ gastown_user }}
+      WorkingDirectory=/home/{{ gastown_user }}/gt
+      Environment="PATH=/home/{{ gastown_user }}/go/bin:/usr/local/go/bin:/usr/bin:/bin"
+      Environment="HOME=/home/{{ gastown_user }}"
+      ExecStart=/home/{{ gastown_user }}/go/bin/gt start mayor
+      Restart=on-failure
+      RestartSec=10
+
+      [Install]
+      WantedBy=multi-user.target
+    dest: /etc/systemd/system/gastown-mayor.service
+    mode: "0644"
+
+- name: Create Gas Town Deacon service
+  copy:
+    content: |
+      [Unit]
+      Description=Gas Town Deacon Service
+      After=network.target gastown-mayor.service
+
+      [Service]
+      Type=simple
+      User={{ gastown_user }}
+      WorkingDirectory=/home/{{ gastown_user }}/gt
+      Environment="PATH=/home/{{ gastown_user }}/go/bin:/usr/local/go/bin:/usr/bin:/bin"
+      Environment="HOME=/home/{{ gastown_user }}"
+      ExecStart=/home/{{ gastown_user }}/go/bin/gt start deacon
+      Restart=on-failure
+      RestartSec=10
+
+      [Install]
+      WantedBy=multi-user.target
+    dest: /etc/systemd/system/gastown-deacon.service
+    mode: "0644"
+
+- name: Reload systemd
+  systemd:
+    daemon_reload: true
+
+- name: Enable and start Mayor service
+  systemd:
+    name: gastown-mayor
+    enabled: true
+    state: started
+
+- name: Enable and start Deacon service
+  systemd:
+    name: gastown-deacon
+    enabled: true
+    state: started
