@@ -6,7 +6,7 @@ import socket
 import time
 from typing import Optional
 
-from .config import get_deployment_ip, get_private_key_path, get_ssh_user
+from .config import get_deployment_ip, get_private_key_path
 
 
 def remove_host_key(host: str) -> None:
@@ -52,9 +52,9 @@ def connect(name: str, user: str = None) -> bool:
     if not key_path:
         return False
 
-    # Use provider's default SSH user (ubuntu for AWS, root for Hetzner/DO)
+    # Default to gastown user (created by ansible during deployment)
     if user is None:
-        user = get_ssh_user(name)
+        user = "gastown"
 
     args = ["ssh"]
     if key_path:
@@ -74,7 +74,7 @@ def get_ssh_command(name: str, user: str = None) -> Optional[str]:
         return None
 
     if user is None:
-        user = get_ssh_user(name)
+        user = "gastown"
 
     key_path = get_private_key_path(name)
     if key_path:

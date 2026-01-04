@@ -273,3 +273,23 @@ def delete_deployment(name: str) -> None:
     deploy_dir = get_deployment_dir(name)
     if deploy_dir.exists():
         shutil.rmtree(deploy_dir)
+
+
+def get_ssh_user(name: str) -> str:
+    """Get the SSH user for a deployment (from inventory or provider default)."""
+    # Try to read from inventory
+    inventory_path = get_deployment_dir(name) / "inventory.ini"
+    if inventory_path.exists():
+        try:
+            content = inventory_path.read_text()
+            match = re.search(r'ansible_user=(\w+)', content)
+            if match:
+                return match.group(1)
+        except OSError:
+            pass
+
+    # Fall back to provider defaults
+    provider = get_deployment_provider(name)
+    if provider == "aws":
+        return "ubuntu"
+    return "root"  # Hetzner, DigitalOcean
