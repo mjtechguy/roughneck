@@ -42,7 +42,7 @@ def wait_for_ssh(host: str, port: int = 22, timeout: int = 150) -> bool:
     return False
 
 
-def connect(name: str, user: str = "gastown") -> bool:
+def connect(name: str, user: str = None) -> bool:
     """SSH to a deployment."""
     ip = get_deployment_ip(name)
     if not ip:
@@ -51,6 +51,10 @@ def connect(name: str, user: str = "gastown") -> bool:
     key_path = get_private_key_path(name)
     if not key_path:
         return False
+
+    # Default to gastown user (created by ansible during deployment)
+    if user is None:
+        user = "gastown"
 
     args = ["ssh"]
     if key_path:
@@ -63,11 +67,14 @@ def connect(name: str, user: str = "gastown") -> bool:
     return True  # Never reached
 
 
-def get_ssh_command(name: str, user: str = "gastown") -> Optional[str]:
+def get_ssh_command(name: str, user: str = None) -> Optional[str]:
     """Get the SSH command for a deployment."""
     ip = get_deployment_ip(name)
     if not ip:
         return None
+
+    if user is None:
+        user = "gastown"
 
     key_path = get_private_key_path(name)
     if key_path:
