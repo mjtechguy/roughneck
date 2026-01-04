@@ -1,6 +1,6 @@
 # Roughneck
 
-Deploy cloud nodes for Gas Town to use. Provisions VMs with Terraform/OpenTofu and configures them with Ansible. Features an interactive CLI that guides you through deployment.
+Deploy cloud nodes for [Gas Town](https://github.com/steveyegge/gastown) to use. Provisions VMs with Terraform/OpenTofu and configures them with Ansible. Features an interactive CLI that guides you through deployment.
 
 ## Supported Providers
 
@@ -147,9 +147,9 @@ When creating a new deployment, you'll be prompted for:
 - **Go 1.23+** - From go.dev/dl
 - **Git 2.43+** - Ubuntu 24.04 default
 - **tmux 3.4+** - Ubuntu 24.04 default
-- **beads (bd)** - Issue tracker CLI
+- **[beads](https://github.com/steveyegge/beads) (bd)** - Issue tracker CLI
 - **Claude Code** - AI coding assistant
-- **Gas Town (gt)** - Multi-agent workspace manager
+- **[Gas Town](https://github.com/steveyegge/gastown) (gt)** - Multi-agent workspace manager
 
 ## Server Pricing (Approximate)
 
