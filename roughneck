@@ -8,6 +8,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from lib import cli, config, terraform, ansible, ssh
+from lib.providers import hetzner, digitalocean, aws
 
 
 def check_prerequisites() -> bool:
@@ -24,6 +25,127 @@ def check_prerequisites() -> bool:
         cli.error(f"Missing required tools: {', '.join(missing)}")
         return False
     return True
+
+
+def prompt_hetzner_config(cfg: config.DeploymentConfig) -> None:
+    """Prompt for Hetzner-specific configuration using API."""
+    cfg.hetzner_token = cli.prompt_password("Hetzner API token")
+
+    # Fetch locations from API
+    print("  Fetching locations...")
+    try:
+        locations = hetzner.get_locations(cfg.hetzner_token)
+        location_choices = [(loc["name"], hetzner.format_location(loc)) for loc in locations]
+    except hetzner.HetznerAPIError as e:
+        cli.error(f"Failed to fetch locations: {e}")
+        cfg.hetzner_location = cli.prompt("Location (fsn1, nbg1, hel1, ash, hil)", default="fsn1")
+        cfg.hetzner_server_type = cli.prompt("Server type (cx22, cx32, cpx31)", default="cx32")
+        return
+
+    cfg.hetzner_location = cli.prompt_choice("Datacenter location:", location_choices, default=1)
+
+    # Fetch server types from API
+    print("  Fetching server types...")
+    try:
+        server_types = hetzner.get_server_types(cfg.hetzner_token, cfg.hetzner_location)
+        type_choices = [(st["name"], hetzner.format_server_type(st)) for st in server_types]
+        # Find a good default (around 4 vCPU, 8GB RAM)
+        default_idx = 1
+        for i, st in enumerate(server_types):
+            if st["cores"] >= 4 and st["memory"] >= 8:
+                default_idx = i + 1
+                break
+    except hetzner.HetznerAPIError as e:
+        cli.error(f"Failed to fetch server types: {e}")
+        cfg.hetzner_server_type = cli.prompt("Server type", default="cx32")
+        return
+
+    cfg.hetzner_server_type = cli.prompt_choice("Server type:", type_choices, default=default_idx)
+
+
+def prompt_aws_config(cfg: config.DeploymentConfig) -> None:
+    """Prompt for AWS-specific configuration using API."""
+    cfg.aws_access_key = cli.prompt_password("AWS Access Key")
+    cfg.aws_secret_key = cli.prompt_password("AWS Secret Key")
+
+    # Fetch regions from API
+    print("  Fetching regions...")
+    try:
+        regions = aws.get_regions(cfg.aws_access_key, cfg.aws_secret_key)
+        region_choices = [(r["name"], aws.format_region(r)) for r in regions]
+        # Find default (us-east-1)
+        default_idx = 1
+        for i, r in enumerate(regions):
+            if r["name"] == "us-east-1":
+                default_idx = i + 1
+                break
+    except aws.AWSAPIError as e:
+        cli.error(f"Failed to fetch regions: {e}")
+        cfg.aws_region = cli.prompt("Region", default="us-east-1")
+        cfg.aws_instance_type = cli.prompt("Instance type", default="t3.medium")
+        return
+
+    cfg.aws_region = cli.prompt_choice("Region:", region_choices, default=default_idx)
+
+    # Fetch instance types from API
+    print("  Fetching instance types...")
+    try:
+        instance_types = aws.get_instance_types(cfg.aws_access_key, cfg.aws_secret_key, cfg.aws_region)
+        type_choices = [(t["name"], aws.format_instance_type(t)) for t in instance_types]
+        # Find default (t3.medium)
+        default_idx = 1
+        for i, t in enumerate(instance_types):
+            if t["name"] == "t3.medium":
+                default_idx = i + 1
+                break
+    except aws.AWSAPIError as e:
+        cli.error(f"Failed to fetch instance types: {e}")
+        cfg.aws_instance_type = cli.prompt("Instance type", default="t3.medium")
+        return
+
+    cfg.aws_instance_type = cli.prompt_choice("Instance type:", type_choices, default=default_idx)
+
+
+def prompt_digitalocean_config(cfg: config.DeploymentConfig) -> None:
+    """Prompt for DigitalOcean-specific configuration using API."""
+    cfg.digitalocean_token = cli.prompt_password("DigitalOcean token")
+
+    # Fetch regions from API
+    print("  Fetching regions...")
+    try:
+        regions = digitalocean.get_regions(cfg.digitalocean_token)
+        region_choices = [(r["slug"], digitalocean.format_region(r)) for r in regions]
+        # Find default (nyc1)
+        default_idx = 1
+        for i, r in enumerate(regions):
+            if r["slug"] == "nyc1":
+                default_idx = i + 1
+                break
+    except digitalocean.DigitalOceanAPIError as e:
+        cli.error(f"Failed to fetch regions: {e}")
+        cfg.digitalocean_region = cli.prompt("Region", default="nyc1")
+        cfg.digitalocean_size = cli.prompt("Droplet size", default="s-2vcpu-4gb")
+        return
+
+    cfg.digitalocean_region = cli.prompt_choice("Region:", region_choices, default=default_idx)
+
+    # Fetch sizes from API
+    print("  Fetching droplet sizes...")
+    try:
+        sizes = digitalocean.get_sizes(cfg.digitalocean_token, cfg.digitalocean_region)
+        size_choices = [(s["slug"], digitalocean.format_size(s)) for s in sizes]
+        # Find default (s-2vcpu-4gb or similar)
+        default_idx = 1
+        for i, s in enumerate(sizes):
+            if s["vcpus"] >= 2 and s["memory"] >= 4096:
+                default_idx = i + 1
+                break
+    except digitalocean.DigitalOceanAPIError as e:
+        cli.error(f"Failed to fetch sizes: {e}")
+        cfg.digitalocean_size = cli.prompt("Droplet size", default="s-2vcpu-4gb")
+        return
+
+    cfg.digitalocean_size = cli.prompt_choice("Droplet size:", size_choices, default=default_idx)
 
 
 def prompt_new_config(name: str) -> config.DeploymentConfig:
@@ -46,51 +168,11 @@ def prompt_new_config(name: str) -> config.DeploymentConfig:
     # Provider-specific prompts
     print()
     if cfg.provider == "hetzner":
-        cfg.hetzner_token = cli.prompt_password("Hetzner API token")
-        cfg.hetzner_location = cli.prompt_choice(
-            "Datacenter location:",
-            [
-                ("fsn1", "Falkenstein, Germany (EU)"),
-                ("nbg1", "Nuremberg, Germany (EU)"),
-                ("hel1", "Helsinki, Finland (EU)"),
-                ("ash", "Ashburn, Virginia (US East)"),
-                ("hil", "Hillsboro, Oregon (US West)"),
-            ],
-            default=1,
-        )
-        # Server types vary by location - CX series available everywhere
-        if cfg.hetzner_location in ("ash", "hil"):
-            cfg.hetzner_server_type = cli.prompt_choice(
-                "Server type:",
-                [
-                    ("cx22", "CX22 - 2 vCPU, 4GB RAM"),
-                    ("cx32", "CX32 - 4 vCPU, 8GB RAM"),
-                    ("cx42", "CX42 - 8 vCPU, 16GB RAM"),
-                    ("cx52", "CX52 - 16 vCPU, 32GB RAM"),
-                ],
-                default=2,
-            )
-        else:
-            cfg.hetzner_server_type = cli.prompt_choice(
-                "Server type:",
-                [
-                    ("cx22", "CX22 - 2 vCPU, 4GB RAM (shared)"),
-                    ("cx32", "CX32 - 4 vCPU, 8GB RAM (shared)"),
-                    ("cpx31", "CPX31 - 4 vCPU, 8GB RAM (AMD)"),
-                    ("cax21", "CAX21 - 4 vCPU, 8GB RAM (ARM)"),
-                    ("ccx23", "CCX23 - 4 vCPU, 16GB RAM (dedicated)"),
-                ],
-                default=2,
-            )
+        prompt_hetzner_config(cfg)
     elif cfg.provider == "aws":
-        cfg.aws_access_key = cli.prompt_password("AWS Access Key")
-        cfg.aws_secret_key = cli.prompt_password("AWS Secret Key")
-        cfg.aws_instance_type = cli.prompt("Instance type (t3.micro, t3.medium, t3.large)", default="t3.medium")
-        cfg.aws_region = cli.prompt("Region (us-east-1, us-west-2, eu-west-1)", default="us-east-1")
+        prompt_aws_config(cfg)
     elif cfg.provider == "digitalocean":
-        cfg.digitalocean_token = cli.prompt_password("DigitalOcean token")
-        cfg.digitalocean_size = cli.prompt("Droplet size (s-1vcpu-1gb, s-2vcpu-4gb)", default="s-2vcpu-4gb")
-        cfg.digitalocean_region = cli.prompt("Region (nyc1, sfo3, ams3, lon1)", default="nyc1")
+        prompt_digitalocean_config(cfg)
 
     # Common fields
     print()
