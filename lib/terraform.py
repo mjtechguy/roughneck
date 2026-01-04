@@ -130,6 +130,14 @@ def destroy(name: str) -> bool:
     if not state_path.exists():
         return True  # Nothing to destroy
 
+    # Ensure modules are initialized (may have been cleared by other provider deploys)
+    init_result = subprocess.run(
+        [cmd, "init"],
+        cwd=get_provider_dir(provider),
+    )
+    if init_result.returncode != 0:
+        return False
+
     result = subprocess.run(
         [
             cmd,
