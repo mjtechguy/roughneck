@@ -147,6 +147,8 @@ When creating a new deployment, you'll be prompted for:
 - **Go 1.23+** - From go.dev/dl
 - **Git 2.43+** - Ubuntu 24.04 default
 - **tmux 3.4+** - Ubuntu 24.04 default
+- **Docker Engine** - Container runtime with Docker Compose v2 plugin
+- **code-server** - VS Code in the browser (port 10000) with secure password auth
 - **[beads](https://github.com/steveyegge/beads) (bd)** - Issue tracker CLI
 - **Claude Code** - AI coding assistant
 - **[Gas Town](https://github.com/steveyegge/gastown) (gt)** - Multi-agent workspace manager
@@ -178,7 +180,9 @@ When creating a new deployment, you'll be prompted for:
 
 ## Post-Deploy
 
-After deployment, you can:
+After deployment, you'll see a comprehensive installation summary showing all installed components, versions, service statuses, and access information. The summary is also saved to `/home/gastown/installation-summary.txt` on the server.
+
+### Access the Server
 
 ```bash
 # SSH directly via CLI
@@ -188,15 +192,30 @@ After deployment, you can:
 ssh -i deployments/prod/generated_key gastown@<ip>
 ```
 
-If no API key was provided:
+### Access code-server Web IDE
+
+Open your browser to `http://<server-ip>:10000`
+- Password is displayed in the installation summary
+- Also saved on server at `~/.config/code-server/password.txt`
+
+### Authenticate Claude (if needed)
+
+If no API key was provided during deployment:
 ```bash
 claude login
 ```
 
-Start Gas Town:
+### Start Gas Town
+
 ```bash
 cd ~/gt
 gt start
+```
+
+### View Installation Summary
+
+```bash
+cat ~/installation-summary.txt
 ```
 
 ## File Structure
@@ -232,13 +251,18 @@ roughneck/
 │       ├── aws/                # AWS resources
 │       └── digitalocean/       # DigitalOcean resources
 └── ansible/                    # Ansible playbook and roles
-    ├── playbook.yml
-    ├── inventory.tpl
+    ├── README.md               # Detailed Ansible documentation
+    ├── playbook.yml            # Main playbook with enhanced reporting
+    ├── inventory.tpl           # Inventory template
+    ├── templates/              # Jinja2 templates
+    │   └── installation-summary.txt.j2  # Installation report
     └── roles/
-        ├── common/             # Base packages
+        ├── common/             # Base packages, user setup
         ├── golang/             # Go installation
         ├── git/                # Git config
         ├── tmux/               # tmux config
+        ├── docker/             # Docker Engine + Compose v2
+        ├── code-server/        # VS Code web IDE
         ├── beads/              # beads CLI
         ├── claude/             # Claude Code CLI
         ├── gastown/            # Gas Town build
