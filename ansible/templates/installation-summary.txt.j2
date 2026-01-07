@@ -1,0 +1,73 @@
+================================================================================
+                     GAS TOWN DEPLOYMENT SUMMARY
+================================================================================
+
+Deployment completed: {{ ansible_date_time.iso8601 }}
+Target server: {{ inventory_hostname }} ({{ ansible_distribution }} {{ ansible_distribution_version }})
+
+--------------------------------------------------------------------------------
+INSTALLED COMPONENTS
+--------------------------------------------------------------------------------
+
+System Tools:
+  ✓ Go                  {{ go_version_output.stdout | regex_search('go([0-9.]+)', '\\1') | first }}
+  ✓ Git                 {{ git_version_output.stdout | regex_search('([0-9.]+)', '\\1') | first }}
+  ✓ tmux                {{ tmux_version_output.stdout | regex_replace('tmux ', '') }}
+  ✓ Node.js             {{ node_version_output.stdout | regex_replace('v', '') }}
+  ✓ npm                 {{ npm_version_output.stdout }}
+
+Container Platform:
+  ✓ Docker              {{ docker_version_output.stdout | regex_search('([0-9.]+)', '\\1') | first }}
+  ✓ Docker Compose      {{ compose_version_output.stdout | regex_search('v([0-9.]+)', '\\1') | first }}
+
+Development Tools:
+  ✓ code-server         {{ codeserver_version_output.stdout | regex_search('([0-9.]+)', '\\1') | first | default('installed') }}
+  ✓ Claude Code CLI     {{ claude_version_output.stdout | default('installed') }}
+  ✓ beads               {{ 'installed' if beads_installed.stat.exists else 'not found' }}
+  ✓ Gas Town (gt)       {{ gt_version_output.stdout | default('installed') }}
+
+--------------------------------------------------------------------------------
+SERVICE STATUS
+--------------------------------------------------------------------------------
+
+  {{ '✓' if docker_service_status.stdout == 'active' else '✗' }} docker              [{{ docker_service_status.stdout | upper }}]
+  {{ '✓' if codeserver_service_status.stdout == 'active' else '✗' }} code-server         [{{ codeserver_service_status.stdout | upper }}] - Port 10000
+{% if enable_systemd_services | default(false) | bool %}
+  {{ '✓' if mayor_service_status.stdout == 'active' else '✗' }} gastown-mayor       [{{ mayor_service_status.stdout | upper }}]
+  {{ '✓' if deacon_service_status.stdout == 'active' else '✗' }} gastown-deacon      [{{ deacon_service_status.stdout | upper }}]
+{% endif %}
+
+--------------------------------------------------------------------------------
+ACCESS INFORMATION
+--------------------------------------------------------------------------------
+
+SSH Access:
+  ssh -i {{ ansible_ssh_private_key_file }} gastown@{{ inventory_hostname }}
+
+Web IDE (code-server):
+  URL:      http://{{ inventory_hostname }}:10000
+  Password: {{ codeserver_password }}
+
+Gas Town:
+  Start:    cd ~/gt && gt start
+  Binary:   ~/go/bin/gt
+
+Claude Code CLI:
+{% if anthropic_api_key | default('') | length > 0 %}
+  Status:   API key configured ✓
+{% else %}
+  Status:   Run 'claude login' to authenticate
+{% endif %}
+
+--------------------------------------------------------------------------------
+NEXT STEPS
+--------------------------------------------------------------------------------
+
+1. SSH into the server as the 'gastown' user
+2. Access code-server in your browser
+3. Initialize Gas Town: cd ~/gt && gt start
+4. (Optional) Configure additional Gas Town settings
+
+Report saved to: /home/gastown/installation-summary.txt
+
+================================================================================

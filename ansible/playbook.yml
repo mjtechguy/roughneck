@@ -12,6 +12,8 @@
     - golang
     - git
     - tmux
+    - docker
+    - code-server
     - beads
     - claude
     - gastown
@@ -19,21 +21,136 @@
       when: enable_systemd_services | bool
 
   post_tasks:
-    - name: Display completion message
+    # ============================================================================
+    # Data Collection - Gather versions and service statuses
+    # ============================================================================
+
+    - name: Gather minimal system facts
+      setup:
+        gather_subset:
+          - '!all'
+          - 'distribution'
+          - 'date_time'
+
+    - name: Get Go version
+      command: /usr/local/go/bin/go version
+      register: go_version_output
+      changed_when: false
+
+    - name: Get Git version
+      command: git --version
+      register: git_version_output
+      changed_when: false
+
+    - name: Get tmux version
+      command: tmux -V
+      register: tmux_version_output
+      changed_when: false
+
+    - name: Get Node.js version
+      command: node --version
+      register: node_version_output
+      changed_when: false
+
+    - name: Get npm version
+      command: npm --version
+      register: npm_version_output
+      changed_when: false
+
+    - name: Get Docker version
+      command: docker --version
+      register: docker_version_output
+      changed_when: false
+
+    - name: Get Docker Compose version
+      command: docker compose version
+      register: compose_version_output
+      changed_when: false
+
+    - name: Get code-server version
+      command: code-server --version
+      register: codeserver_version_output
+      changed_when: false
+      failed_when: false
+
+    - name: Get Claude CLI version
+      command: claude --version
+      register: claude_version_output
+      changed_when: false
+      failed_when: false
+
+    - name: Check beads installation
+      stat:
+        path: /home/{{ gastown_user }}/go/bin/bd
+      register: beads_installed
+
+    - name: Get Gas Town version
+      become_user: "{{ gastown_user }}"
+      command: /home/{{ gastown_user }}/go/bin/gt version
+      register: gt_version_output
+      changed_when: false
+      failed_when: false
+
+    - name: Check Docker service status
+      command: systemctl is-active docker
+      register: docker_service_status
+      changed_when: false
+      failed_when: false
+
+    - name: Check code-server service status
+      command: systemctl is-active code-server
+      register: codeserver_service_status
+      changed_when: false
+      failed_when: false
+
+    - name: Check Gas Town Mayor service status
+      command: systemctl is-active gastown-mayor
+      register: mayor_service_status
+      changed_when: false
+      failed_when: false
+      when: enable_systemd_services | default(false) | bool
+
+    - name: Check Gas Town Deacon service status
+      command: systemctl is-active gastown-deacon
+      register: deacon_service_status
+      changed_when: false
+      failed_when: false
+      when: enable_systemd_services | default(false) | bool
+
+    # ============================================================================
+    # Verification - Ensure Docker and code-server are working
+    # ============================================================================
+
+    - name: Verify Docker is functional
+      command: docker ps
+      register: docker_verify
+      changed_when: false
+      failed_when: false
+
+    - name: Verify code-server is accessible
+      wait_for:
+        port: 10000
+        timeout: 5
+      failed_when: false
+
+    # ============================================================================
+    # Report Generation - Create and display summary
+    # ============================================================================
+
+    - name: Generate installation summary report
+      template:
+        src: installation-summary.txt.j2
+        dest: /home/{{ gastown_user }}/installation-summary.txt
+        owner: "{{ gastown_user }}"
+        group: "{{ gastown_user }}"
+        mode: '0644'
+
+    - name: Read generated report for display
+      slurp:
+        src: /home/{{ gastown_user }}/installation-summary.txt
+      register: summary_report
+
+    - name: Display installation summary
       debug:
-        msg: |
-
-          ========================================
-          Gas Town deployment complete!
-          ========================================
-
-          Connect as gastown user:
-            ssh -i {{ ansible_ssh_private_key_file }} gastown@{{ inventory_hostname }}
-
-          {% if not anthropic_api_key %}
-          NOTE: Run 'claude login' to authenticate Claude Code CLI
-          {% endif %}
-
-          Start Gas Town:
-            cd ~/gt && gt start
+        msg: "{{ summary_report['content'] | b64decode }}"
 
