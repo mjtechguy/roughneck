@@ -190,6 +190,17 @@
       changed_when: false
       failed_when: false
 
+    - name: Read code-server password from server
+      slurp:
+        src: /home/{{ roughneck_user }}/.config/code-server/password.txt
+      register: codeserver_password_file
+      failed_when: false
+
+    - name: Set code-server password from file
+      set_fact:
+        codeserver_password: "{{ codeserver_password_file.content | b64decode | trim }}"
+      when: codeserver_password_file.content is defined
+
     - name: Check Roughneck Mayor service status
       command: systemctl is-active roughneck-mayor
       register: mayor_service_status

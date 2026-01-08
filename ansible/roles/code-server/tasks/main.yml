@@ -37,6 +37,7 @@
     owner: "{{ roughneck_user }}"
     group: "{{ roughneck_user }}"
     mode: '0600'
+  register: codeserver_config
 
 - name: Store password in file for later retrieval
   copy:
@@ -63,6 +64,12 @@
     name: code-server
     enabled: true
     state: started
+
+- name: Restart code-server if config changed
+  systemd:
+    name: code-server
+    state: restarted
+  when: codeserver_config.changed
 
 - name: Wait for code-server to start
   wait_for:
