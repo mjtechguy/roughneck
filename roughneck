@@ -3,7 +3,7 @@
 # requires-python = ">=3.10"
 # dependencies = ["requests>=2.28.0"]
 # ///
-"""Roughneck - Deploy cloud nodes for Gas Town."""
+"""Roughneck - AI-assisted cloud development environment provisioner."""
 
 import sys
 import os
@@ -212,20 +212,13 @@ def prompt_new_config(name: str) -> config.DeploymentConfig:
         else:
             cfg.firewall_allowed_ips = []
 
-    # Roughneck config
+    # Optional features
     print()
-    cfg.roughneck_repo = cli.prompt(
-        "Roughneck repo",
-        default="https://github.com/steveyegge/roughneck.git",
-    )
-    cfg.roughneck_branch = cli.prompt("Roughneck branch", default="main")
-
-    # Claude config
-    print()
-    cfg.anthropic_api_key = cli.prompt_password("Claude API key (blank for manual login)", required=False)
-
-    # Services
-    cfg.enable_systemd_services = cli.prompt_bool("Enable systemd services?", default=False)
+    cfg.enable_k9s = cli.prompt_bool("Enable k9s (Kubernetes TUI)?", default=False)
+    cfg.enable_gastown = cli.prompt_bool("Enable Gas Town ecosystem?", default=False)
+    if cfg.enable_gastown:
+        cfg.enable_beads = cli.prompt_bool("Enable beads CLI?", default=False)
+        cfg.enable_systemd_services = cli.prompt_bool("Enable systemd services (Mayor/Deacon)?", default=False)
 
     return cfg
 
@@ -255,9 +248,17 @@ def show_summary(name: str, cfg: config.DeploymentConfig) -> None:
     else:
         print(f"  Firewall:    Disabled")
 
-    print(f"  Roughneck:   {cfg.roughneck_repo} @ {cfg.roughneck_branch}")
-    print(f"  Claude:      {'API key provided' if cfg.anthropic_api_key else 'Manual login'}")
-    print(f"  Systemd:     {'Enabled' if cfg.enable_systemd_services else 'Disabled'}")
+    # Optional features
+    features = []
+    if cfg.enable_k9s:
+        features.append("k9s")
+    if cfg.enable_gastown:
+        features.append("Gas Town")
+    if cfg.enable_beads:
+        features.append("beads")
+    if cfg.enable_systemd_services:
+        features.append("systemd")
+    print(f"  Features:    {', '.join(features) if features else 'None'}")
     print()
 
 

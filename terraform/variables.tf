@@ -132,33 +132,6 @@ variable "digitalocean_region" {
 }
 
 # =============================================================================
-# Roughneck Configuration
-# =============================================================================
-
-variable "roughneck_repo" {
-  description = "Roughneck git repository URL"
-  type        = string
-  default     = "https://github.com/steveyegge/roughneck.git"
-}
-
-variable "roughneck_branch" {
-  description = "Roughneck git branch to checkout"
-  type        = string
-  default     = "main"
-}
-
-# =============================================================================
-# Claude Configuration
-# =============================================================================
-
-variable "anthropic_api_key" {
-  description = "Anthropic API key for Claude. Leave empty to login manually."
-  type        = string
-  default     = ""
-  sensitive   = true
-}
-
-# =============================================================================
 # Firewall Configuration
 # =============================================================================
 
@@ -175,11 +148,29 @@ variable "firewall_allowed_ips" {
 }
 
 # =============================================================================
-# Service Configuration
+# Optional Features
 # =============================================================================
 
+variable "enable_gastown" {
+  description = "Enable Gas Town ecosystem"
+  type        = bool
+  default     = false
+}
+
+variable "enable_beads" {
+  description = "Enable beads CLI tool"
+  type        = bool
+  default     = false
+}
+
+variable "enable_k9s" {
+  description = "Enable k9s Kubernetes TUI"
+  type        = bool
+  default     = false
+}
+
 variable "enable_systemd_services" {
-  description = "Enable systemd services for Mayor and Deacon"
+  description = "Enable systemd services for Mayor and Deacon (requires Gas Town)"
   type        = bool
   default     = false
 }

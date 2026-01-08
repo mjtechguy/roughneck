@@ -40,18 +40,14 @@ class DeploymentConfig:
     digitalocean_size: str = "s-2vcpu-4gb"
     digitalocean_region: str = "nyc1"
 
-    # Roughneck
-    roughneck_repo: str = "https://github.com/steveyegge/roughneck.git"
-    roughneck_branch: str = "main"
-
-    # Claude
-    anthropic_api_key: str = ""
-
     # Firewall
     enable_firewall: bool = True
     firewall_allowed_ips: List[str] = field(default_factory=list)
 
-    # Services
+    # Optional features
+    enable_gastown: bool = False
+    enable_beads: bool = False
+    enable_k9s: bool = False
     enable_systemd_services: bool = False
 
 
@@ -201,14 +197,10 @@ def write_tfvars(name: str, config: DeploymentConfig) -> None:
         f"enable_firewall      = {str(config.enable_firewall).lower()}",
         f"firewall_allowed_ips = {allowed_ips_hcl}",
         "",
-        "# Roughneck",
-        f'roughneck_repo   = "{config.roughneck_repo}"',
-        f'roughneck_branch = "{config.roughneck_branch}"',
-        "",
-        "# Claude",
-        f'anthropic_api_key = "{config.anthropic_api_key}"',
-        "",
-        "# Services",
+        "# Optional features",
+        f"enable_gastown          = {str(config.enable_gastown).lower()}",
+        f"enable_beads            = {str(config.enable_beads).lower()}",
+        f"enable_k9s              = {str(config.enable_k9s).lower()}",
         f"enable_systemd_services = {str(config.enable_systemd_services).lower()}",
     ])
 

@@ -42,21 +42,10 @@ ssh_public_key_path = "~/.ssh/id_rsa.pub"
 # firewall_allowed_ips = ["1.2.3.4/32", "10.0.0.0/8"]
 
 # =============================================================================
-# Roughneck Configuration (optional)
+# Optional Features
 # =============================================================================
 
-# roughneck_repo   = "https://github.com/yourusername/roughneck.git"
-# roughneck_branch = "main"
-
-# =============================================================================
-# Claude Configuration (optional)
-# =============================================================================
-
-# Leave empty to login manually with 'claude login'
-# anthropic_api_key = ""
-
-# =============================================================================
-# Service Configuration (optional)
-# =============================================================================
-
-# enable_systemd_services = false
+# enable_k9s              = false  # Kubernetes TUI
+# enable_gastown          = false  # Gas Town ecosystem
+# enable_beads            = false  # beads CLI (requires Gas Town)
+# enable_systemd_services = false  # Mayor/Deacon services (requires Gas Town)

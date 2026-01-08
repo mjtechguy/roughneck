@@ -65,15 +65,11 @@ SSH Access:
   ssh -i {{ ansible_ssh_private_key_file }} roughneck@{{ inventory_hostname }}
 
 Web IDE (code-server):
-  URL:      http://{{ inventory_hostname }}:10000
+  URL:      https://{{ inventory_hostname }}:10000  (self-signed cert)
   Password: {{ codeserver_password }}
 
 AI Assistants:
-{% if anthropic_api_key | default('') | length > 0 %}
-  Claude:   API key configured ✓
-{% else %}
   Claude:   Run 'claude login' to authenticate
-{% endif %}
   Codex:    Set OPENAI_API_KEY or run 'codex auth'
   Gemini:   Set GOOGLE_API_KEY or run 'gemini auth'
   Copilot:  Run 'gh auth login' then 'gh copilot'
@@ -89,7 +85,7 @@ NEXT STEPS
 --------------------------------------------------------------------------------
 
 1. SSH into the server as the 'roughneck' user
-2. Access code-server in your browser at http://{{ inventory_hostname }}:10000
+2. Access code-server in your browser at https://{{ inventory_hostname }}:10000
 3. Authenticate your AI assistants (Claude, Codex, Gemini, Copilot)
 4. Use lazygit/lazydocker for visual Git/Docker management
 5. Configure mise for per-project tool versions
