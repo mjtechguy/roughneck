@@ -241,3 +241,10 @@
       debug:
         msg: "{{ summary_report['content'] | b64decode }}"
 
+    - name: Fetch installation summary to local deployment directory
+      fetch:
+        src: /home/{{ roughneck_user }}/installation-summary.txt
+        dest: "{{ local_deployment_dir }}/installation-summary.txt"
+        flat: true
+      when: local_deployment_dir is defined
+

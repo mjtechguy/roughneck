@@ -27,7 +27,8 @@ def run_playbook(name: str) -> bool:
     if not cmd:
         return False
 
-    inventory_path = get_deployment_dir(name) / "inventory.ini"
+    deploy_dir = get_deployment_dir(name)
+    inventory_path = deploy_dir / "inventory.ini"
     if not inventory_path.exists():
         return False
 
@@ -36,7 +37,13 @@ def run_playbook(name: str) -> bool:
     env["ANSIBLE_HOST_KEY_CHECKING"] = "False"
 
     result = subprocess.run(
-        [cmd, "-i", str(inventory_path), "-v", "playbook.yml"],
+        [
+            cmd,
+            "-i", str(inventory_path),
+            "-v",
+            "-e", f"local_deployment_dir={deploy_dir}",
+            "playbook.yml",
+        ],
         cwd=get_ansible_dir(),
         env=env,
     )
