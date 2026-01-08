@@ -41,6 +41,6 @@ resource "aws_instance" "node" {
   tags = {
     Name    = "${var.project_name}-node"
     Project = var.project_name
-    Role    = "gastown"
+    Role    = "roughneck"
   }
 }

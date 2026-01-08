@@ -12,7 +12,7 @@
 
 - name: Check if oh-my-zsh is already installed
   stat:
-    path: /home/{{ gastown_user }}/.oh-my-zsh
+    path: /home/{{ roughneck_user }}/.oh-my-zsh
   register: ohmyzsh_installed
 
 - name: Download oh-my-zsh install script
@@ -22,12 +22,12 @@
     mode: '0755'
   when: not ohmyzsh_installed.stat.exists
 
-- name: Install oh-my-zsh for gastown user
+- name: Install oh-my-zsh for roughneck user
   become: true
-  become_user: "{{ gastown_user }}"
+  become_user: "{{ roughneck_user }}"
   shell: sh /tmp/ohmyzsh-install.sh --unattended
   args:
-    creates: /home/{{ gastown_user }}/.oh-my-zsh
+    creates: /home/{{ roughneck_user }}/.oh-my-zsh
   when: not ohmyzsh_installed.stat.exists
 
 - name: Remove oh-my-zsh install script
@@ -38,30 +38,30 @@
 - name: Clone zsh-autosuggestions plugin
   git:
     repo: https://github.com/zsh-users/zsh-autosuggestions.git
-    dest: /home/{{ gastown_user }}/.oh-my-zsh/custom/plugins/zsh-autosuggestions
+    dest: /home/{{ roughneck_user }}/.oh-my-zsh/custom/plugins/zsh-autosuggestions
     depth: 1
   become: true
-  become_user: "{{ gastown_user }}"
+  become_user: "{{ roughneck_user }}"
 
 - name: Clone zsh-syntax-highlighting plugin
   git:
     repo: https://github.com/zsh-users/zsh-syntax-highlighting.git
-    dest: /home/{{ gastown_user }}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting
+    dest: /home/{{ roughneck_user }}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting
     depth: 1
   become: true
-  become_user: "{{ gastown_user }}"
+  become_user: "{{ roughneck_user }}"
 
 - name: Deploy .zshrc configuration
   template:
     src: .zshrc.j2
-    dest: /home/{{ gastown_user }}/.zshrc
-    owner: "{{ gastown_user }}"
-    group: "{{ gastown_user }}"
+    dest: /home/{{ roughneck_user }}/.zshrc
+    owner: "{{ roughneck_user }}"
+    group: "{{ roughneck_user }}"
     mode: '0644'
 
-- name: Change default shell to zsh for gastown user
+- name: Change default shell to zsh for roughneck user
   user:
-    name: "{{ gastown_user }}"
+    name: "{{ roughneck_user }}"
     shell: /usr/bin/zsh
 
 - name: Display zsh installation complete
@@ -70,7 +70,7 @@
       - "=========================================="
       - "Zsh + Oh-My-Zsh Installation Complete"
       - "=========================================="
-      - "User: {{ gastown_user }}"
+      - "User: {{ roughneck_user }}"
       - "Theme: robbyrussell"
       - "Plugins: git, docker, zsh-autosuggestions, zsh-syntax-highlighting"
       - "=========================================="

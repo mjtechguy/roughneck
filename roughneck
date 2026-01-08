@@ -212,13 +212,13 @@ def prompt_new_config(name: str) -> config.DeploymentConfig:
         else:
             cfg.firewall_allowed_ips = []
 
-    # Gas Town config
+    # Roughneck config
     print()
-    cfg.gastown_repo = cli.prompt(
-        "Gas Town repo",
-        default="https://github.com/steveyegge/gastown.git",
+    cfg.roughneck_repo = cli.prompt(
+        "Roughneck repo",
+        default="https://github.com/steveyegge/roughneck.git",
     )
-    cfg.gastown_branch = cli.prompt("Gas Town branch", default="main")
+    cfg.roughneck_branch = cli.prompt("Roughneck branch", default="main")
 
     # Claude config
     print()
@@ -255,7 +255,7 @@ def show_summary(name: str, cfg: config.DeploymentConfig) -> None:
     else:
         print(f"  Firewall:    Disabled")
 
-    print(f"  Gas Town:    {cfg.gastown_repo} @ {cfg.gastown_branch}")
+    print(f"  Roughneck:   {cfg.roughneck_repo} @ {cfg.roughneck_branch}")
     print(f"  Claude:      {'API key provided' if cfg.anthropic_api_key else 'Manual login'}")
     print(f"  Systemd:     {'Enabled' if cfg.enable_systemd_services else 'Disabled'}")
     print()

@@ -117,14 +117,20 @@ locals {
 # Ansible Inventory
 # =============================================================================
 
+locals {
+  # SSH user depends on provider (AWS uses ubuntu, others use root)
+  ssh_user = var.provider_name == "aws" ? "ubuntu" : "root"
+}
+
 resource "local_file" "ansible_inventory" {
   content = templatefile("${path.root}/../ansible/inventory.tpl", {
     server_ip               = local.server_ip
     private_key_path        = local.private_key_path
+    ssh_user                = local.ssh_user
     git_user_name           = var.git_user_name
     git_user_email          = var.git_user_email
-    gastown_repo            = var.gastown_repo
-    gastown_branch          = var.gastown_branch
+    roughneck_repo          = var.roughneck_repo
+    roughneck_branch        = var.roughneck_branch
     anthropic_api_key       = var.anthropic_api_key
     enable_systemd_services = var.enable_systemd_services
   })

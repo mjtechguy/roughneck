@@ -68,8 +68,8 @@ resource "local_file" "ansible_inventory" {
     ssh_user                = "root"
     git_user_name           = var.git_user_name
     git_user_email          = var.git_user_email
-    gastown_repo            = var.gastown_repo
-    gastown_branch          = var.gastown_branch
+    roughneck_repo          = var.roughneck_repo
+    roughneck_branch        = var.roughneck_branch
     anthropic_api_key       = var.anthropic_api_key
     enable_systemd_services = var.enable_systemd_services
   })

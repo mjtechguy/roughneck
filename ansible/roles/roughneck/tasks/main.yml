@@ -1,0 +1,42 @@
+---
+- name: Clone Roughneck repository
+  become_user: "{{ roughneck_user }}"
+  git:
+    repo: "{{ roughneck_repo }}"
+    dest: "/home/{{ roughneck_user }}/roughneck-src"
+    version: "{{ roughneck_branch }}"
+    force: false
+
+- name: Build Roughneck
+  become_user: "{{ roughneck_user }}"
+  shell: |
+    source /etc/profile.d/golang.sh
+    cd /home/{{ roughneck_user }}/roughneck-src
+    make build
+    cp gt /home/{{ roughneck_user }}/go/bin/gt
+  args:
+    executable: /bin/bash
+    creates: "/home/{{ roughneck_user }}/go/bin/gt"
+
+- name: Check if Roughneck HQ exists
+  stat:
+    path: "/home/{{ roughneck_user }}/gt"
+  register: gt_hq
+
+- name: Initialize Roughneck HQ
+  become_user: "{{ roughneck_user }}"
+  shell: |
+    source /etc/profile.d/golang.sh
+    export PATH="$HOME/go/bin:$PATH"
+    gt install /home/{{ roughneck_user }}/gt --git
+  args:
+    executable: /bin/bash
+  when: not gt_hq.stat.exists
+
+- name: Add gt to PATH in bashrc
+  lineinfile:
+    path: "/home/{{ roughneck_user }}/.bashrc"
+    line: 'export PATH="$HOME/go/bin:$PATH"'
+    create: true
+    owner: "{{ roughneck_user }}"
+    group: "{{ roughneck_user }}"

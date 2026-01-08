@@ -1,26 +1,46 @@
 ---
-- name: Deploy Gas Town
-  hosts: gastown
+- name: Deploy Roughneck
+  hosts: roughneck
   become: true
 
   vars:
-    gastown_user: gastown
+    roughneck_user: roughneck
     go_version: "1.23.4"
+    # Feature flags for optional components (Gas Town ecosystem)
+    enable_gastown: false
+    enable_beads: false
+    enable_k9s: false
 
   roles:
+    # Core system setup
     - common
     - zsh
     - golang
     - git
     - github-cli
     - tmux
+    # Container platform
     - docker
+    # Development environment
     - code-server
-    - beads
+    - direnv
+    - mise
+    - lazygit
+    - lazydocker
+    - role: k9s
+      when: enable_k9s | default(false) | bool
+    # AI coding assistants
     - claude
-    - gastown
+    - codex-cli
+    - gemini-cli
+    - copilot-cli
+    # Optional: Gas Town ecosystem (disabled by default)
+    - role: beads
+      when: enable_beads | default(false) | bool
+    - role: roughneck
+      when: enable_gastown | default(false) | bool
     - role: systemd
-      when: enable_systemd_services | bool
+      when: enable_systemd_services | default(false) | bool
 
   post_tasks:
     # ============================================================================
@@ -93,17 +113,70 @@
       changed_when: false
       failed_when: false
 
+    - name: Get Codex CLI version
+      command: codex --version
+      register: codex_version_output
+      changed_when: false
+      failed_when: false
+
+    - name: Get Gemini CLI version
+      command: gemini --version
+      register: gemini_version_output
+      changed_when: false
+      failed_when: false
+
+    - name: Check Copilot CLI installation
+      become_user: "{{ roughneck_user }}"
+      command: gh extension list
+      register: copilot_version_output
+      changed_when: false
+      failed_when: false
+
+    - name: Get direnv version
+      command: direnv --version
+      register: direnv_version_output
+      changed_when: false
+      failed_when: false
+
+    - name: Get mise version
+      become_user: "{{ roughneck_user }}"
+      command: /home/{{ roughneck_user }}/.local/bin/mise --version
+      register: mise_version_output
+      changed_when: false
+      failed_when: false
+
+    - name: Get lazygit version
+      command: lazygit --version
+      register: lazygit_version_output
+      changed_when: false
+      failed_when: false
+
+    - name: Get lazydocker version
+      command: lazydocker --version
+      register: lazydocker_version_output
+      changed_when: false
+      failed_when: false
+
+    - name: Get k9s version
+      command: k9s version --short
+      register: k9s_version_output
+      changed_when: false
+      failed_when: false
+      when: enable_k9s | default(false) | bool
+
     - name: Check beads installation
       stat:
-        path: /home/{{ gastown_user }}/go/bin/bd
+        path: /home/{{ roughneck_user }}/go/bin/bd
       register: beads_installed
+      when: enable_beads | default(false) | bool
 
-    - name: Get Gas Town version
-      become_user: "{{ gastown_user }}"
-      command: /home/{{ gastown_user }}/go/bin/gt version
+    - name: Get Gas Town (gt) version
+      become_user: "{{ roughneck_user }}"
+      command: /home/{{ roughneck_user }}/go/bin/gt version
       register: gt_version_output
       changed_when: false
       failed_when: false
+      when: enable_gastown | default(false) | bool
 
     - name: Check Docker service status
       command: systemctl is-active docker
@@ -117,15 +190,15 @@
       changed_when: false
       failed_when: false
 
-    - name: Check Gas Town Mayor service status
-      command: systemctl is-active gastown-mayor
+    - name: Check Roughneck Mayor service status
+      command: systemctl is-active roughneck-mayor
       register: mayor_service_status
       changed_when: false
       failed_when: false
       when: enable_systemd_services | default(false) | bool
 
-    - name: Check Gas Town Deacon service status
-      command: systemctl is-active gastown-deacon
+    - name: Check Roughneck Deacon service status
+      command: systemctl is-active roughneck-deacon
       register: deacon_service_status
       changed_when: false
       failed_when: false
@@ -154,14 +227,14 @@
     - name: Generate installation summary report
       template:
         src: installation-summary.txt.j2
-        dest: /home/{{ gastown_user }}/installation-summary.txt
-        owner: "{{ gastown_user }}"
-        group: "{{ gastown_user }}"
+        dest: /home/{{ roughneck_user }}/installation-summary.txt
+        owner: "{{ roughneck_user }}"
+        group: "{{ roughneck_user }}"
         mode: '0644'
 
     - name: Read generated report for display
       slurp:
-        src: /home/{{ gastown_user }}/installation-summary.txt
+        src: /home/{{ roughneck_user }}/installation-summary.txt
       register: summary_report
 
     - name: Display installation summary

@@ -3,7 +3,7 @@
 # Docker Installation Role
 # =============================================================================
 # Installs Docker Engine and Docker Compose v2 plugin from official repository
-# Adds gastown user to docker group for non-root access
+# Adds roughneck user to docker group for non-root access
 
 - name: Install prerequisites
   apt:
@@ -52,9 +52,9 @@
       - docker-compose-plugin
     state: present
 
-- name: Add gastown user to docker group
+- name: Add roughneck user to docker group
   user:
-    name: "{{ gastown_user }}"
+    name: "{{ roughneck_user }}"
     groups: docker
     append: true
 

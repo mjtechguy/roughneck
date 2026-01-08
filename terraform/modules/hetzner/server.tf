@@ -13,7 +13,7 @@ resource "hcloud_server" "node" {
 
   labels = {
     project = var.project_name
-    role    = "gastown"
+    role    = "roughneck"
   }
 
   # Cloud-init to ensure Python is available for Ansible

@@ -5,10 +5,10 @@ After=network.target
 
 [Service]
 Type=exec
-User={{ gastown_user }}
-Group={{ gastown_user }}
-WorkingDirectory=/home/{{ gastown_user }}
-ExecStart=/usr/bin/code-server --bind-addr 0.0.0.0:10000 --auth password --config /home/{{ gastown_user }}/.config/code-server/config.yaml /home/{{ gastown_user }}
+User={{ roughneck_user }}
+Group={{ roughneck_user }}
+WorkingDirectory=/home/{{ roughneck_user }}
+ExecStart=/usr/bin/code-server --bind-addr 0.0.0.0:10000 --auth password --config /home/{{ roughneck_user }}/.config/code-server/config.yaml /home/{{ roughneck_user }}
 Restart=always
 RestartSec=10
 StandardOutput=journal

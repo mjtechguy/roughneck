@@ -1,0 +1,22 @@
+---
+# =============================================================================
+# Direnv Installation Role
+# =============================================================================
+# Installs direnv for automatic directory-based environment loading
+
+- name: Install direnv
+  apt:
+    name: direnv
+    state: present
+    update_cache: true
+
+- name: Verify direnv installation
+  command: direnv --version
+  register: direnv_version
+  changed_when: false
+
+- name: Display direnv version
+  debug:
+    msg:
+      - "direnv installation complete"
+      - "Version: {{ direnv_version.stdout }}"

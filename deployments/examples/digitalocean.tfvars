@@ -41,11 +41,11 @@ ssh_public_key_path = "~/.ssh/id_rsa.pub"
 # firewall_allowed_ips = ["1.2.3.4/32", "10.0.0.0/8"]
 
 # =============================================================================
-# Gas Town Configuration (optional)
+# Roughneck Configuration (optional)
 # =============================================================================
 
-# gastown_repo   = "https://github.com/yourusername/gastown.git"
-# gastown_branch = "main"
+# roughneck_repo   = "https://github.com/yourusername/roughneck.git"
+# roughneck_branch = "main"
 
 # =============================================================================
 # Claude Configuration (optional)

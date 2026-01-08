@@ -1,20 +1,21 @@
-# Gas Town Deployment - Ansible Playbook
+# Roughneck - AI Coding Environment Playbook
 
-Automated deployment playbook for setting up a complete Gas Town development environment on Ubuntu servers.
+Automated provisioning playbook for AI-assisted cloud development environments on Ubuntu servers.
 
 ## Overview
 
-This Ansible playbook automates the installation and configuration of all dependencies required to run Gas Town, including development tools, container runtime, web IDE, and CLI utilities.
+This Ansible playbook provisions fully-configured remote development environments optimized for AI-assisted coding. It installs and configures development tools, AI coding assistants, container runtime, and a browser-based IDE - giving you a complete cloud coding workstation accessible from anywhere.
 
 ## Features
 
+- **AI Coding Assistants**: Claude Code CLI, OpenAI Codex CLI, Google Gemini CLI, GitHub Copilot CLI
+- **Browser-Based IDE**: code-server (VS Code in the browser) with secure authentication
 - **Modern Shell**: Zsh with oh-my-zsh, autosuggestions, and syntax highlighting
-- **Complete Development Environment**: Installs Go, Git, GitHub CLI, tmux, Node.js, and other essential tools
-- **Container Platform**: Docker Engine + Docker Compose v2 for containerized applications
-- **Web IDE**: code-server (VS Code in the browser) with secure password authentication
-- **CLI Tools**: Claude Code CLI, GitHub CLI, beads, and Gas Town binaries
-- **Service Management**: Optional systemd services for Gas Town Mayor and Deacon
-- **Comprehensive Reporting**: Detailed installation summary with versions, service statuses, and access information
+- **Container Platform**: Docker Engine + Docker Compose v2
+- **Development Tools**: Go, Git, GitHub CLI, tmux, direnv, mise (polyglot version manager)
+- **DevOps Utilities**: lazygit, lazydocker, k9s (optional Kubernetes TUI)
+- **Service Management**: systemd integration for persistent services
+- **Comprehensive Reporting**: Detailed installation summary with versions and access information
 
 ## Prerequisites
 
@@ -27,7 +28,7 @@ This Ansible playbook automates the installation and configuration of all depend
 1. **Configure inventory**:
    ```bash
    # Edit inventory file with your server details
-   [gastown]
+   [roughneck]
    your-server-ip ansible_user=root ansible_ssh_private_key_file=~/.ssh/your-key
    ```
 
@@ -43,12 +44,18 @@ This Ansible playbook automates the installation and configuration of all depend
 
 4. **SSH to server**:
    ```bash
-   ssh -i ~/.ssh/your-key gastown@your-server-ip
+   ssh -i ~/.ssh/your-key roughneck@your-server-ip
    ```
 
-5. **Start Gas Town**:
+5. **Start coding with AI**:
    ```bash
-   cd ~/gt && gt start
+   # Use Claude Code CLI
+   claude
+
+   # Or other AI assistants
+   codex
+   gemini
+   gh copilot
    ```
 
 ## Configuration Variables
@@ -57,19 +64,24 @@ Define these in your inventory or playbook:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `gastown_user` | `gastown` | Primary user account for Gas Town |
+| `roughneck_user` | `roughneck` | Primary user account |
 | `go_version` | `1.23.4` | Go language version to install |
-| `enable_systemd_services` | `false` | Enable Gas Town systemd services (Mayor/Deacon) |
 | `anthropic_api_key` | (optional) | Claude API key for Claude Code CLI |
+| `openai_api_key` | (optional) | OpenAI API key for Codex CLI |
+| `gemini_api_key` | (optional) | Google API key for Gemini CLI |
+| `enable_gastown` | `false` | Enable Gas Town ecosystem (optional) |
+| `enable_beads` | `false` | Enable beads CLI tool (optional) |
+| `enable_k9s` | `false` | Enable k9s Kubernetes TUI (optional) |
+| `enable_systemd_services` | `false` | Enable systemd services for Gas Town |
 
 ## Roles
 
-The playbook executes the following roles in order:
+The playbook includes ~20 roles organized by function:
 
 ### Core System Roles
 
 1. **common** - Base system setup
-   - Creates gastown user with sudo access
+   - Creates roughneck user with sudo access
    - Installs essential packages (curl, wget, build-essential, etc.)
    - Configures system prerequisites
 
@@ -93,61 +105,94 @@ The playbook executes the following roles in order:
 5. **github-cli** - GitHub CLI (gh)
    - Installs GitHub CLI from official APT repository
    - Enables `gh` commands for repos, PRs, issues, etc.
-   - Verifies installation
 
 6. **tmux** - Terminal multiplexer
    - Installs tmux
    - Deploys custom configuration
 
-### Container & Development Roles
+### Container Role
 
 7. **docker** - Container platform
    - Installs Docker Engine from official repository
    - Installs Docker Compose v2 plugin
-   - Adds gastown user to docker group
+   - Adds roughneck user to docker group
    - Starts and enables Docker service
-   - Verifies installation
 
-8. **code-server** - Web IDE
+### Development Environment Roles
+
+8. **code-server** - Browser-based IDE
    - Installs code-server via official install script
    - Generates secure 24-character random password
-   - Creates systemd service
-   - Binds to `0.0.0.0:10000`
-   - Waits for service availability
+   - Creates systemd service on port 10000
    - Saves password to `~/.config/code-server/password.txt`
 
-### CLI Tools Roles
+9. **direnv** - Directory-based environment variables
+   - Installs direnv for automatic env loading
+   - Integrates with zsh shell
 
-9. **beads** - Beads CLI tool
-   - Installs beads via Go
-   - Binary location: `~/go/bin/bd`
+10. **mise** - Polyglot version manager
+    - Installs mise (formerly rtx) for managing tool versions
+    - Supports Node.js, Python, Ruby, and many more
+    - Integrates with shell for automatic version switching
 
-10. **claude** - Claude Code CLI
+11. **lazygit** - Terminal UI for Git
+    - Installs lazygit for visual git operations
+    - Simplifies staging, committing, and branch management
+
+12. **lazydocker** - Terminal UI for Docker
+    - Installs lazydocker for container management
+    - Visual interface for images, containers, and logs
+
+13. **k9s** (optional) - Kubernetes TUI
+    - Installs k9s for Kubernetes cluster management
+    - Only installed when `enable_k9s: true`
+
+### AI Assistant Roles
+
+14. **claude** - Claude Code CLI
     - Installs Node.js 22.x via NodeSource repository
     - Installs Claude Code CLI globally via npm
     - Configures API key if provided
 
-### Application Roles
+15. **codex-cli** - OpenAI Codex CLI
+    - Installs OpenAI Codex CLI
+    - Configures API key if provided
 
-11. **gastown** - Gas Town application
+16. **gemini-cli** - Google Gemini CLI
+    - Installs Google Gemini CLI
+    - Configures API key if provided
+
+17. **copilot-cli** - GitHub Copilot CLI
+    - Installs GitHub Copilot CLI extension
+    - Integrates with GitHub CLI (`gh copilot`)
+
+### Optional Roles
+
+18. **beads** (optional) - Beads CLI tool
+    - Installs beads via Go
+    - Binary location: `~/go/bin/bd`
+    - Only installed when `enable_beads: true`
+
+19. **roughneck** (optional) - Gas Town application
     - Clones Gas Town repository to `~/gt`
     - Builds Gas Town binary
     - Initializes headquarters
-    - Binary location: `~/go/bin/gt`
+    - Only installed when `enable_gastown: true`
 
-12. **systemd** (conditional) - Service management
+20. **systemd** (conditional) - Service management
     - Creates systemd units for gastown-mayor and gastown-deacon
-    - Only runs when `enable_systemd_services` is `true`
+    - Only runs when `enable_systemd_services: true` and `enable_gastown: true`
 
 ## Post-Installation Report
 
-After all roles complete, the playbook generates a comprehensive installation summary that includes:
+After all roles complete, the playbook generates a comprehensive installation summary including:
 
 ### Installed Components
-- Shell environment (Zsh with oh-my-zsh, autosuggestions, syntax highlighting)
-- System tools with versions (Go, Git, GitHub CLI, tmux, Node.js, npm)
+- Shell environment (Zsh with oh-my-zsh, plugins)
+- System tools with versions (Go, Git, GitHub CLI, tmux, Node.js)
 - Container platform (Docker, Docker Compose)
-- Development tools (code-server, Claude CLI, beads, Gas Town)
+- Development tools (code-server, direnv, mise, lazygit, lazydocker)
+- AI assistants (Claude CLI, Codex CLI, Gemini CLI, Copilot CLI)
 
 ### Service Status
 - Docker service status
@@ -157,21 +202,19 @@ After all roles complete, the playbook generates a comprehensive installation su
 ### Access Information
 - SSH connection command
 - code-server Web IDE URL and password
-- Gas Town start command
-- Claude CLI authentication status
+- AI CLI authentication status
 
 ### Report Output
 - Displayed in console at end of playbook run
-- Saved to `/home/gastown/installation-summary.txt` on the server
-- Owned by gastown user with 0644 permissions
+- Saved to `/home/roughneck/installation-summary.txt` on the server
 
 Example output:
 ```
 ================================================================================
-                     GAS TOWN DEPLOYMENT SUMMARY
+                  ROUGHNECK AI CODING ENVIRONMENT SUMMARY
 ================================================================================
 
-Deployment completed: 2025-01-07T18:30:45Z
+Deployment completed: 2025-01-08T10:30:45Z
 Target server: 192.168.1.100 (Ubuntu 22.04)
 
 --------------------------------------------------------------------------------
@@ -179,46 +222,52 @@ INSTALLED COMPONENTS
 --------------------------------------------------------------------------------
 
 System Tools:
-  ✓ Go                  1.23.4
-  ✓ Git                 2.34.1
-  ✓ tmux                3.2a
-  ✓ Node.js             22.12.0
-  ✓ npm                 10.9.2
+  * Go                  1.23.4
+  * Git                 2.34.1
+  * GitHub CLI          2.63.2
+  * tmux                3.2a
+  * Node.js             22.12.0
 
 Container Platform:
-  ✓ Docker              27.4.1
-  ✓ Docker Compose      2.31.0
+  * Docker              27.4.1
+  * Docker Compose      2.31.0
 
 Development Tools:
-  ✓ code-server         4.98.3
-  ✓ Claude Code CLI     installed
-  ✓ beads               installed
-  ✓ Gas Town (gt)       installed
+  * code-server         4.98.3
+  * direnv              installed
+  * mise                installed
+  * lazygit             installed
+  * lazydocker          installed
+
+AI Coding Assistants:
+  * Claude Code CLI     installed
+  * Codex CLI           installed
+  * Gemini CLI          installed
+  * Copilot CLI         installed
 
 --------------------------------------------------------------------------------
 SERVICE STATUS
 --------------------------------------------------------------------------------
 
-  ✓ docker              [ACTIVE]
-  ✓ code-server         [ACTIVE] - Port 10000
+  * docker              [ACTIVE]
+  * code-server         [ACTIVE] - Port 10000
 
 --------------------------------------------------------------------------------
 ACCESS INFORMATION
 --------------------------------------------------------------------------------
 
 SSH Access:
-  ssh -i ~/.ssh/your-key gastown@192.168.1.100
+  ssh -i ~/.ssh/your-key roughneck@192.168.1.100
 
 Web IDE (code-server):
   URL:      http://192.168.1.100:10000
   Password: Abc123XyzRandomSecure24
 
-Gas Town:
-  Start:    cd ~/gt && gt start
-  Binary:   ~/go/bin/gt
-
-Claude Code CLI:
-  Status:   Run 'claude login' to authenticate
+AI Assistants:
+  claude    - Run 'claude' to start AI coding session
+  codex     - Run 'codex' for OpenAI assistant
+  gemini    - Run 'gemini' for Google assistant
+  copilot   - Run 'gh copilot' for GitHub assistant
 ```
 
 ## File Structure
@@ -231,20 +280,32 @@ ansible/
 ├── templates/
 │   └── installation-summary.txt.j2     # Report template
 └── roles/
-    ├── common/tasks/main.yml
-    ├── golang/tasks/main.yml
-    ├── git/tasks/main.yml
-    ├── tmux/tasks/main.yml
-    ├── docker/tasks/main.yml
-    ├── code-server/
+    ├── common/tasks/main.yml           # Base system setup
+    ├── zsh/                             # Shell environment
+    │   ├── tasks/main.yml
+    │   └── templates/.zshrc.j2
+    ├── golang/tasks/main.yml           # Go language
+    ├── git/tasks/main.yml              # Git VCS
+    ├── github-cli/tasks/main.yml       # GitHub CLI
+    ├── tmux/tasks/main.yml             # Terminal multiplexer
+    ├── docker/tasks/main.yml           # Container platform
+    ├── code-server/                     # Browser IDE
     │   ├── tasks/main.yml
     │   └── templates/
     │       ├── config.yaml.j2
     │       └── code-server.service.j2
-    ├── beads/tasks/main.yml
-    ├── claude/tasks/main.yml
-    ├── gastown/tasks/main.yml
-    └── systemd/tasks/main.yml
+    ├── direnv/tasks/main.yml           # Directory env vars
+    ├── mise/tasks/main.yml             # Version manager
+    ├── lazygit/tasks/main.yml          # Git TUI
+    ├── lazydocker/tasks/main.yml       # Docker TUI
+    ├── k9s/tasks/main.yml              # Kubernetes TUI (optional)
+    ├── claude/tasks/main.yml           # Claude Code CLI
+    ├── codex-cli/tasks/main.yml        # OpenAI Codex CLI
+    ├── gemini-cli/tasks/main.yml       # Google Gemini CLI
+    ├── copilot-cli/tasks/main.yml      # GitHub Copilot CLI
+    ├── beads/tasks/main.yml            # Beads CLI (optional)
+    ├── roughneck/tasks/main.yml        # Gas Town (optional)
+    └── systemd/tasks/main.yml          # Service management
 ```
 
 ## Verification
@@ -257,31 +318,40 @@ After deployment, verify the installation:
 sudo systemctl status docker
 docker --version
 docker compose version
-docker ps
 
 # code-server
 sudo systemctl status code-server
 curl -I http://localhost:10000
-
-# Gas Town (if systemd enabled)
-sudo systemctl status gastown-mayor
-sudo systemctl status gastown-deacon
 ```
 
-### Check Installed Tools
+### Check AI Assistants
+```bash
+# Claude Code CLI
+claude --version
+
+# Codex CLI
+codex --version
+
+# Gemini CLI
+gemini --version
+
+# GitHub Copilot
+gh copilot --version
+```
+
+### Check Development Tools
 ```bash
 # Versions
 go version
 git --version
+gh --version
 tmux -V
 node --version
-npm --version
-claude --version
-bd --help
-gt version
+lazygit --version
+lazydocker --version
 
 # User permissions
-groups gastown  # Should include 'docker'
+groups roughneck  # Should include 'docker'
 ```
 
 ### View Installation Summary
@@ -298,25 +368,27 @@ cat ~/installation-summary.txt
 - Verify port: `sudo netstat -tlnp | grep 10000`
 
 ### Docker permission denied
-- Ensure user is in docker group: `groups gastown`
+- Ensure user is in docker group: `groups roughneck`
 - Log out and back in for group changes to take effect
 - Or run: `newgrp docker`
 
-### Gas Town build fails
-- Check Go installation: `go version`
-- Verify repository clone: `ls ~/gt`
-- Review build logs in playbook output
+### AI CLI not working
+- **Claude**: Authenticate with `claude login` or set `ANTHROPIC_API_KEY`
+- **Codex**: Set `OPENAI_API_KEY` environment variable
+- **Gemini**: Set `GEMINI_API_KEY` environment variable
+- **Copilot**: Authenticate with `gh auth login`
 
-### Claude CLI not working
-- Authenticate: `claude login`
-- Set API key manually: `export ANTHROPIC_API_KEY=your-key`
-- Or provide `anthropic_api_key` variable in inventory
+### mise not loading versions
+- Ensure direnv is allowed: `direnv allow`
+- Check mise configuration: `mise doctor`
+- Reload shell: `exec zsh`
 
 ## Security Considerations
 
 - **code-server password**: Auto-generated 24-character password, stored securely on server
-- **Docker access**: gastown user added to docker group (equivalent to root access)
+- **Docker access**: roughneck user added to docker group (equivalent to root access)
 - **SSH keys**: Use SSH key authentication, not passwords
+- **API keys**: Store API keys in environment variables, not in code
 - **Firewall**: Configure UFW or iptables to restrict access to code-server port
 - **Updates**: Regularly update Docker, code-server, and system packages
 
@@ -329,11 +401,12 @@ Edit `roles/code-server/templates/config.yaml.j2` and change the bind address.
 Add tasks to the code-server role to install extensions:
 ```yaml
 - name: Install VS Code extensions
-  become_user: "{{ gastown_user }}"
+  become_user: "{{ roughneck_user }}"
   command: code-server --install-extension {{ item }}
   loop:
     - golang.go
     - ms-python.python
+    - github.copilot
 ```
 
 ### Customize Go version
@@ -343,79 +416,74 @@ vars:
   go_version: "1.22.0"
 ```
 
+### Enable optional features
+```yaml
+vars:
+  enable_gastown: true    # Enable Gas Town ecosystem
+  enable_beads: true      # Enable beads CLI
+  enable_k9s: true        # Enable Kubernetes TUI
+```
+
 ## Changelog
+
+### 2025-01-08 - Major Rebranding: AI Coding Environment Focus
+
+**Rebranding:**
+- Renamed from "Gas Town Deployment" to "Roughneck - AI Coding Environment Playbook"
+- Changed primary user variable from `gastown_user` to `roughneck_user`
+- Repositioned as AI-assisted cloud development environment provisioner
+- Gas Town ecosystem now optional (controlled by `enable_gastown` flag)
+
+**Added AI Assistant Roles:**
+- **codex-cli**: OpenAI Codex CLI for AI coding assistance
+- **gemini-cli**: Google Gemini CLI for AI coding assistance
+- **copilot-cli**: GitHub Copilot CLI integration with `gh copilot`
+
+**Added Development Environment Roles:**
+- **direnv**: Directory-based environment variable management
+- **mise**: Polyglot version manager (Node.js, Python, Ruby, etc.)
+- **lazygit**: Terminal UI for Git operations
+- **lazydocker**: Terminal UI for Docker management
+- **k9s**: Kubernetes TUI (optional, controlled by `enable_k9s` flag)
+
+**New Feature Flags:**
+- `enable_gastown`: Controls Gas Town (roughneck role) installation
+- `enable_beads`: Controls beads CLI installation
+- `enable_k9s`: Controls k9s Kubernetes TUI installation
+
+**Role Count:**
+- Expanded from 12 to 20 roles total
+- Organized into categories: Core, Container, Dev Environment, AI Assistants, Optional
+
+---
 
 ### 2025-01-08 - Added Zsh, Oh-My-Zsh, and GitHub CLI
 
 **Added:**
 - **zsh role**: Modern shell environment with oh-my-zsh framework
-  - Installs Zsh and sets as default shell for gastown user
+  - Installs Zsh and sets as default shell
   - Installs oh-my-zsh with robbyrussell theme
-  - Installs zsh-autosuggestions plugin (Fish-like command suggestions)
-  - Installs zsh-syntax-highlighting plugin (command syntax coloring)
-  - Configures PATH for Go binaries, user binaries, and local bin
-  - Includes useful aliases and history settings
-  - Supports local customizations via `~/.zshrc.local`
+  - Installs zsh-autosuggestions and zsh-syntax-highlighting plugins
+  - Configures PATH for Go and user binaries
 
 - **github-cli role**: GitHub CLI (gh) for repository management
   - Installs from official GitHub APT repository
-  - Enables `gh repo`, `gh pr`, `gh issue`, and other GitHub commands
-  - Verifies installation with version check
-
-**Changed:**
-- Role execution order: zsh runs early (after common) for shell consistency
-- GitHub CLI runs after git role (logical grouping)
-- Updated installation summary template with Zsh and GitHub CLI versions
-- Added version checks in post_tasks for new tools
-
-**New File Structure:**
-```
-roles/
-├── zsh/
-│   ├── tasks/main.yml
-│   └── templates/.zshrc.j2
-└── github-cli/
-    └── tasks/main.yml
-```
+  - Enables `gh repo`, `gh pr`, `gh issue`, and other commands
 
 ---
 
 ### 2025-01-07 - Enhanced Installation Reporting
 
 **Added:**
-- Comprehensive installation summary template (`templates/installation-summary.txt.j2`)
-- Post-deployment data collection for all installed components
-- Version extraction for Go, Git, tmux, Node.js, npm, Docker, Docker Compose, code-server, Claude CLI, beads, and Gas Town
-- Service status checks for Docker, code-server, and optional Gas Town systemd services
-- Docker and code-server functionality verification tasks
-- Installation summary file saved to `/home/gastown/installation-summary.txt` on server
-- Structured console output with component versions, service statuses, and access information
-
-**Changed:**
-- Replaced simple completion message with comprehensive multi-section report
-- Enhanced post_tasks section with 20+ verification and reporting tasks
-- Improved visibility of code-server URL and password in final output
-
-**Technical Details:**
-- Added `setup` task to gather system facts (distribution, date_time)
-- Implemented version collection using `command` module with `changed_when: false`
-- Added `failed_when: false` for optional tools to prevent playbook failure
-- Service status checks using `systemctl is-active` for active/inactive detection
-- Report template uses Jinja2 regex filters for clean version extraction
-- Report file created with `template` module, owned by gastown user (0644 permissions)
-- Used `slurp` module to read and display report in console output
-
-**Benefits:**
-- Single comprehensive view of all installed components and their versions
-- Immediate verification that Docker and code-server are working correctly
-- Persistent installation record saved on server for future reference
-- Clear access instructions for SSH, code-server, and Gas Town
-- Service status visibility without manual checking
+- Comprehensive installation summary template
+- Post-deployment data collection for all components
+- Version extraction and service status checks
+- Installation summary saved to server
 
 ## License
 
-Internal tool for Gas Town deployment.
+Open source tool for AI-assisted development environment provisioning.
 
 ## Support
 
-For issues or questions, refer to the Gas Town documentation or contact the development team.
+For issues or questions, open an issue on the GitHub repository.

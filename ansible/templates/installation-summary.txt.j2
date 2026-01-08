@@ -1,5 +1,5 @@
 ================================================================================
-                     GAS TOWN DEPLOYMENT SUMMARY
+                     ROUGHNECK DEPLOYMENT SUMMARY
 ================================================================================
 
 Deployment completed: {{ ansible_date_time.iso8601 }}
@@ -9,7 +9,7 @@ Target server: {{ inventory_hostname }} ({{ ansible_distribution }} {{ ansible_d
 INSTALLED COMPONENTS
 --------------------------------------------------------------------------------
 
-System Tools:
+Shell & Core Tools:
   ✓ Zsh                 {{ zsh_version_output.stdout | regex_search('([0-9.]+)', '\\1') | first | default('installed') }} (oh-my-zsh)
   ✓ Go                  {{ go_version_output.stdout | regex_search('go([0-9.]+)', '\\1') | first }}
   ✓ Git                 {{ git_version_output.stdout | regex_search('([0-9.]+)', '\\1') | first }}
@@ -22,11 +22,29 @@ Container Platform:
   ✓ Docker              {{ docker_version_output.stdout | regex_search('([0-9.]+)', '\\1') | first }}
   ✓ Docker Compose      {{ compose_version_output.stdout | regex_search('v([0-9.]+)', '\\1') | first }}
 
-Development Tools:
+Development Environment:
   ✓ code-server         {{ codeserver_version_output.stdout | regex_search('([0-9.]+)', '\\1') | first | default('installed') }}
+  ✓ direnv              {{ direnv_version_output.stdout | default('installed') }}
+  ✓ mise                {{ mise_version_output.stdout | regex_search('([0-9.]+)', '\\1') | first | default('installed') }}
+  ✓ lazygit             {{ lazygit_version_output.stdout | regex_search('([0-9.]+)', '\\1') | first | default('installed') }}
+  ✓ lazydocker          {{ lazydocker_version_output.stdout | regex_search('([0-9.]+)', '\\1') | first | default('installed') }}
+{% if enable_k9s | default(false) | bool %}
+  ✓ k9s                 {{ k9s_version_output.stdout | default('installed') }}
+{% endif %}
+
+AI Coding Assistants:
   ✓ Claude Code CLI     {{ claude_version_output.stdout | default('installed') }}
-  ✓ beads               {{ 'installed' if beads_installed.stat.exists else 'not found' }}
+  ✓ Codex CLI           {{ codex_version_output.stdout | default('installed') }}
+  ✓ Gemini CLI          {{ gemini_version_output.stdout | default('installed') }}
+  ✓ Copilot CLI         {{ 'installed' if 'gh-copilot' in (copilot_version_output.stdout | default('')) else 'not found' }}
+{% if enable_gastown | default(false) | bool %}
+
+Optional (Gas Town Ecosystem):
   ✓ Gas Town (gt)       {{ gt_version_output.stdout | default('installed') }}
+{% if enable_beads | default(false) | bool %}
+  ✓ beads               {{ 'installed' if beads_installed.stat.exists else 'not found' }}
+{% endif %}
+{% endif %}
 
 --------------------------------------------------------------------------------
 SERVICE STATUS
@@ -35,8 +53,8 @@ SERVICE STATUS
   {{ '✓' if docker_service_status.stdout == 'active' else '✗' }} docker              [{{ docker_service_status.stdout | upper }}]
   {{ '✓' if codeserver_service_status.stdout == 'active' else '✗' }} code-server         [{{ codeserver_service_status.stdout | upper }}] - Port 10000
 {% if enable_systemd_services | default(false) | bool %}
-  {{ '✓' if mayor_service_status.stdout == 'active' else '✗' }} gastown-mayor       [{{ mayor_service_status.stdout | upper }}]
-  {{ '✓' if deacon_service_status.stdout == 'active' else '✗' }} gastown-deacon      [{{ deacon_service_status.stdout | upper }}]
+  {{ '✓' if mayor_service_status.stdout == 'active' else '✗' }} roughneck-mayor     [{{ mayor_service_status.stdout | upper }}]
+  {{ '✓' if deacon_service_status.stdout == 'active' else '✗' }} roughneck-deacon    [{{ deacon_service_status.stdout | upper }}]
 {% endif %}
 
 --------------------------------------------------------------------------------
@@ -44,32 +62,41 @@ ACCESS INFORMATION
 --------------------------------------------------------------------------------
 
 SSH Access:
-  ssh -i {{ ansible_ssh_private_key_file }} gastown@{{ inventory_hostname }}
+  ssh -i {{ ansible_ssh_private_key_file }} roughneck@{{ inventory_hostname }}
 
 Web IDE (code-server):
   URL:      http://{{ inventory_hostname }}:10000
   Password: {{ codeserver_password }}
 
+AI Assistants:
+{% if anthropic_api_key | default('') | length > 0 %}
+  Claude:   API key configured ✓
+{% else %}
+  Claude:   Run 'claude login' to authenticate
+{% endif %}
+  Codex:    Set OPENAI_API_KEY or run 'codex auth'
+  Gemini:   Set GOOGLE_API_KEY or run 'gemini auth'
+  Copilot:  Run 'gh auth login' then 'gh copilot'
+{% if enable_gastown | default(false) | bool %}
+
 Gas Town:
   Start:    cd ~/gt && gt start
   Binary:   ~/go/bin/gt
-
-Claude Code CLI:
-{% if anthropic_api_key | default('') | length > 0 %}
-  Status:   API key configured ✓
-{% else %}
-  Status:   Run 'claude login' to authenticate
 {% endif %}
 
 --------------------------------------------------------------------------------
 NEXT STEPS
 --------------------------------------------------------------------------------
 
-1. SSH into the server as the 'gastown' user
-2. Access code-server in your browser
-3. Initialize Gas Town: cd ~/gt && gt start
-4. (Optional) Configure additional Gas Town settings
+1. SSH into the server as the 'roughneck' user
+2. Access code-server in your browser at http://{{ inventory_hostname }}:10000
+3. Authenticate your AI assistants (Claude, Codex, Gemini, Copilot)
+4. Use lazygit/lazydocker for visual Git/Docker management
+5. Configure mise for per-project tool versions
+{% if enable_gastown | default(false) | bool %}
+6. Initialize Gas Town: cd ~/gt && gt start
+{% endif %}
 
-Report saved to: /home/gastown/installation-summary.txt
+Report saved to: /home/roughneck/installation-summary.txt
 
 ================================================================================

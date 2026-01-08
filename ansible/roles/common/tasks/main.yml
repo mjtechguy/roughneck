@@ -20,35 +20,35 @@
       - gnupg
     state: present
 
-- name: Create gastown user
+- name: Create roughneck user
   user:
-    name: "{{ gastown_user }}"
+    name: "{{ roughneck_user }}"
     shell: /bin/bash
     create_home: true
     groups: sudo
     append: true
 
-- name: Allow gastown user passwordless sudo
+- name: Allow roughneck user passwordless sudo
   lineinfile:
-    path: /etc/sudoers.d/gastown
-    line: "{{ gastown_user }} ALL=(ALL) NOPASSWD:ALL"
+    path: /etc/sudoers.d/roughneck
+    line: "{{ roughneck_user }} ALL=(ALL) NOPASSWD:ALL"
     create: true
     mode: "0440"
     validate: "visudo -cf %s"
 
-- name: Create .ssh directory for gastown user
+- name: Create .ssh directory for roughneck user
   file:
-    path: "/home/{{ gastown_user }}/.ssh"
+    path: "/home/{{ roughneck_user }}/.ssh"
     state: directory
-    owner: "{{ gastown_user }}"
-    group: "{{ gastown_user }}"
+    owner: "{{ roughneck_user }}"
+    group: "{{ roughneck_user }}"
     mode: "0700"
 
-- name: Copy authorized_keys to gastown user
+- name: Copy authorized_keys to roughneck user
   copy:
     src: "{{ '/root' if ansible_user == 'root' else '/home/' + ansible_user }}/.ssh/authorized_keys"
-    dest: "/home/{{ gastown_user }}/.ssh/authorized_keys"
+    dest: "/home/{{ roughneck_user }}/.ssh/authorized_keys"
     remote_src: true
-    owner: "{{ gastown_user }}"
-    group: "{{ gastown_user }}"
+    owner: "{{ roughneck_user }}"
+    group: "{{ roughneck_user }}"
     mode: "0600"

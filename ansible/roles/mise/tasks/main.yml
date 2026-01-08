@@ -1,0 +1,40 @@
+---
+# =============================================================================
+# Mise Installation Role
+# =============================================================================
+# Installs mise (formerly rtx) for polyglot runtime management
+
+- name: Create .local/bin directory for user
+  file:
+    path: "/home/{{ roughneck_user }}/.local/bin"
+    state: directory
+    owner: "{{ roughneck_user }}"
+    group: "{{ roughneck_user }}"
+    mode: "0755"
+
+- name: Check if mise is installed
+  stat:
+    path: "/home/{{ roughneck_user }}/.local/bin/mise"
+  register: mise_installed
+
+- name: Download and install mise
+  become: true
+  become_user: "{{ roughneck_user }}"
+  shell: |
+    curl -fsSL https://mise.run | MISE_INSTALL_PATH=$HOME/.local/bin/mise sh
+  args:
+    creates: "/home/{{ roughneck_user }}/.local/bin/mise"
+  when: not mise_installed.stat.exists
+
+- name: Verify mise installation
+  become: true
+  become_user: "{{ roughneck_user }}"
+  command: "/home/{{ roughneck_user }}/.local/bin/mise --version"
+  register: mise_version
+  changed_when: false
+
+- name: Display mise version
+  debug:
+    msg:
+      - "mise installation complete"
+      - "{{ mise_version.stdout }}"

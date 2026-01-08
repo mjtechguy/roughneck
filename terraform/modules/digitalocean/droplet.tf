@@ -11,7 +11,7 @@ resource "digitalocean_droplet" "node" {
 
   ssh_keys = [digitalocean_ssh_key.node.fingerprint]
 
-  tags = [var.project_name, "gastown"]
+  tags = [var.project_name, "roughneck"]
 
   # Cloud-init to ensure Python is available for Ansible
   user_data = <<-EOF

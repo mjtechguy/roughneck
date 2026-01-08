@@ -1,8 +1,8 @@
 ---
 - name: Install beads CLI via Go
-  become_user: "{{ gastown_user }}"
+  become_user: "{{ roughneck_user }}"
   shell: |
     export PATH="/usr/local/go/bin:$HOME/go/bin:$PATH"
     go install github.com/steveyegge/beads/cmd/bd@latest
   args:
-    creates: "/home/{{ gastown_user }}/go/bin/bd"
+    creates: "/home/{{ roughneck_user }}/go/bin/bd"

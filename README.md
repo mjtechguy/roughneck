@@ -1,6 +1,6 @@
 # Roughneck
 
-Deploy cloud nodes for [Gas Town](https://github.com/steveyegge/gastown) to use. Provisions VMs with Terraform/OpenTofu and configures them with Ansible. Features an interactive CLI that guides you through deployment.
+Deploy AI-powered cloud development environments. Provisions VMs with Terraform/OpenTofu and configures them with Ansible, creating fully-equipped workspaces with AI coding assistants, modern developer tools, and browser-based IDEs.
 
 ## Supported Providers
 
@@ -25,7 +25,7 @@ Deploy cloud nodes for [Gas Town](https://github.com/steveyegge/gastown) to use.
 That's it! The CLI will guide you through:
 1. Selecting your cloud provider (Hetzner, AWS, or DigitalOcean)
 2. Entering provider credentials and server configuration
-3. Setting up Git and Claude credentials
+3. Setting up Git and AI assistant credentials
 4. Deploying and connecting via SSH
 
 ## Usage
@@ -73,9 +73,9 @@ Terraform apply failed. What would you like to do?
 ```
 
 The deploy command also auto-resumes from where it left off:
-- Server exists and reachable? → Skip to Ansible
-- Server exists but unreachable? → Wait for SSH, then Ansible
-- Partial state? → Resume Terraform apply
+- Server exists and reachable? -> Skip to Ansible
+- Server exists but unreachable? -> Wait for SSH, then Ansible
+- Partial state? -> Resume Terraform apply
 
 ## Multiple Deployments
 
@@ -137,23 +137,47 @@ When creating a new deployment, you'll be prompted for:
 | Git user email | For git commits on server | (required) |
 | SSH key | Generate new or use existing | generate |
 | Firewall | Enable/disable with IP restrictions | enabled, allow all |
-| Gas Town repo | Repository URL | github.com/steveyegge/gastown |
-| Gas Town branch | Branch to checkout | main |
 | Claude API key | For Claude Code CLI | (optional, manual login) |
+
+### Optional Features
+
+| Setting | Description | Default |
+|---------|-------------|---------|
+| Gas Town repo | Repository URL for Gas Town | (optional) |
+| Gas Town branch | Branch to checkout | main |
 | Systemd services | Auto-start Mayor/Deacon | no |
 
 ## What Gets Installed
 
+### Shell & Core
 - **Zsh + Oh-My-Zsh** - Modern shell with autosuggestions and syntax highlighting
 - **Go 1.23+** - From go.dev/dl
 - **Git 2.43+** - Ubuntu 24.04 default
 - **GitHub CLI (gh)** - GitHub operations from the command line
-- **tmux 3.4+** - Ubuntu 24.04 default
-- **Docker Engine** - Container runtime with Docker Compose v2 plugin
+- **tmux 3.4+** - Terminal multiplexer
+- **Node.js** - JavaScript runtime (via mise)
+
+### Container
+- **Docker Engine** - Container runtime
+- **Docker Compose v2** - Multi-container orchestration
+
+### Dev Environment
 - **code-server** - VS Code in the browser (port 10000) with secure password auth
-- **[beads](https://github.com/steveyegge/beads) (bd)** - Issue tracker CLI
-- **Claude Code** - AI coding assistant
+- **direnv** - Environment variable management per directory
+- **mise** - Polyglot runtime manager (replaces asdf, nvm, pyenv)
+- **lazygit** - Terminal UI for git commands
+- **lazydocker** - Terminal UI for Docker management
+
+### AI Assistants
+- **Claude Code CLI** - Anthropic's AI coding assistant
+- **OpenAI Codex CLI** - OpenAI's coding assistant (optional)
+- **Google Gemini CLI** - Google's AI assistant (optional)
+- **GitHub Copilot CLI** - GitHub's AI pair programmer (optional)
+
+### Optional Tools
 - **[Gas Town](https://github.com/steveyegge/gastown) (gt)** - Multi-agent workspace manager
+- **[beads](https://github.com/steveyegge/beads) (bd)** - Issue tracker CLI
+- **k9s** - Kubernetes CLI dashboard
 
 ## Server Pricing (Approximate)
 
@@ -182,7 +206,7 @@ When creating a new deployment, you'll be prompted for:
 
 ## Post-Deploy
 
-After deployment, you'll see a comprehensive installation summary showing all installed components, versions, service statuses, and access information. The summary is also saved to `/home/gastown/installation-summary.txt` on the server.
+After deployment, you'll see a comprehensive installation summary showing all installed components, versions, service statuses, and access information. The summary is also saved to `/home/roughneck/installation-summary.txt` on the server.
 
 ### Access the Server
 
@@ -191,7 +215,7 @@ After deployment, you'll see a comprehensive installation summary showing all in
 ./roughneck ssh prod
 
 # Or manually
-ssh -i deployments/prod/generated_key gastown@<ip>
+ssh -i deployments/prod/generated_key roughneck@<ip>
 ```
 
 ### Access code-server Web IDE
@@ -200,18 +224,27 @@ Open your browser to `http://<server-ip>:10000`
 - Password is displayed in the installation summary
 - Also saved on server at `~/.config/code-server/password.txt`
 
-### Authenticate Claude (if needed)
+### Set Up AI Assistants
 
-If no API key was provided during deployment:
+**Claude Code** (if no API key was provided during deployment):
 ```bash
 claude login
 ```
 
-### Start Gas Town
-
+**GitHub Copilot** (requires GitHub account):
 ```bash
-cd ~/gt
-gt start
+gh auth login
+gh copilot alias -- zsh  # Add shell aliases
+```
+
+**OpenAI Codex** (requires OpenAI API key):
+```bash
+export OPENAI_API_KEY="your-key"
+```
+
+**Google Gemini** (requires Google AI API key):
+```bash
+export GOOGLE_API_KEY="your-key"
 ```
 
 ### View Installation Summary
@@ -267,9 +300,17 @@ roughneck/
         ├── tmux/               # tmux config
         ├── docker/             # Docker Engine + Compose v2
         ├── code-server/        # VS Code web IDE
-        ├── beads/              # beads CLI
+        ├── direnv/             # Directory-based env vars
+        ├── mise/               # Polyglot runtime manager
+        ├── lazygit/            # Terminal git UI
+        ├── lazydocker/         # Terminal Docker UI
         ├── claude/             # Claude Code CLI
-        ├── gastown/            # Gas Town build
+        ├── openai-codex/       # OpenAI Codex CLI (optional)
+        ├── gemini/             # Google Gemini CLI (optional)
+        ├── copilot/            # GitHub Copilot CLI (optional)
+        ├── gastown/            # Gas Town build (optional)
+        ├── beads/              # beads CLI (optional)
+        ├── k9s/                # Kubernetes dashboard (optional)
         └── systemd/            # Optional services
 ```
 

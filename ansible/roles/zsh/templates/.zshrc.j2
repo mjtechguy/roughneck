@@ -1,10 +1,10 @@
 # =============================================================================
-# Zsh Configuration for {{ gastown_user }}
+# Zsh Configuration for {{ roughneck_user }}
 # =============================================================================
 # Managed by Ansible - Do not edit manually
 
 # Path to oh-my-zsh installation
-export ZSH="/home/{{ gastown_user }}/.oh-my-zsh"
+export ZSH="/home/{{ roughneck_user }}/.oh-my-zsh"
 
 # Theme configuration
 ZSH_THEME="robbyrussell"
@@ -34,19 +34,19 @@ if [ -d "/usr/local/go/bin" ]; then
 fi
 
 # Go workspace binaries
-if [ -d "/home/{{ gastown_user }}/go/bin" ]; then
-    export GOPATH="/home/{{ gastown_user }}/go"
+if [ -d "/home/{{ roughneck_user }}/go/bin" ]; then
+    export GOPATH="/home/{{ roughneck_user }}/go"
     export PATH="$GOPATH/bin:$PATH"
 fi
 
 # User local binaries
-if [ -d "/home/{{ gastown_user }}/.local/bin" ]; then
-    export PATH="/home/{{ gastown_user }}/.local/bin:$PATH"
+if [ -d "/home/{{ roughneck_user }}/.local/bin" ]; then
+    export PATH="/home/{{ roughneck_user }}/.local/bin:$PATH"
 fi
 
 # User bin directory
-if [ -d "/home/{{ gastown_user }}/bin" ]; then
-    export PATH="/home/{{ gastown_user }}/bin:$PATH"
+if [ -d "/home/{{ roughneck_user }}/bin" ]; then
+    export PATH="/home/{{ roughneck_user }}/bin:$PATH"
 fi
 
 # =============================================================================
@@ -84,9 +84,27 @@ alias l='ls -CF'
 alias ..='cd ..'
 alias ...='cd ../..'
 
+# Lazygit and lazydocker aliases
+alias lg='lazygit'
+alias ld='lazydocker'
+
+# =============================================================================
+# Tool Integrations
+# =============================================================================
+
+# direnv - load/unload environment variables per directory
+if command -v direnv &> /dev/null; then
+    eval "$(direnv hook zsh)"
+fi
+
+# mise - multi-language version manager
+if [ -f "/home/{{ roughneck_user }}/.local/bin/mise" ]; then
+    eval "$(/home/{{ roughneck_user }}/.local/bin/mise activate zsh)"
+fi
+
 # =============================================================================
 # Local customizations (not managed by Ansible)
 # =============================================================================
-if [ -f "/home/{{ gastown_user }}/.zshrc.local" ]; then
-    source "/home/{{ gastown_user }}/.zshrc.local"
+if [ -f "/home/{{ roughneck_user }}/.zshrc.local" ]; then
+    source "/home/{{ roughneck_user }}/.zshrc.local"
 fi

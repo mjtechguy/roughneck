@@ -1,0 +1,46 @@
+---
+# =============================================================================
+# Lazydocker Installation Role
+# =============================================================================
+# Installs lazydocker - a simple terminal UI for docker and docker-compose
+
+- name: Get latest lazydocker release version
+  uri:
+    url: https://api.github.com/repos/jesseduffield/lazydocker/releases/latest
+    return_content: true
+  register: lazydocker_release
+
+- name: Set lazydocker version fact
+  set_fact:
+    lazydocker_version: "{{ lazydocker_release.json.tag_name | regex_replace('^v', '') }}"
+
+- name: Check if lazydocker is installed
+  stat:
+    path: /usr/local/bin/lazydocker
+  register: lazydocker_installed
+
+- name: Download lazydocker
+  get_url:
+    url: "https://github.com/jesseduffield/lazydocker/releases/download/v{{ lazydocker_version }}/lazydocker_{{ lazydocker_version }}_Linux_x86_64.tar.gz"
+    dest: /tmp/lazydocker.tar.gz
+    mode: "0644"
+  when: not lazydocker_installed.stat.exists
+
+- name: Extract and install lazydocker
+  unarchive:
+    src: /tmp/lazydocker.tar.gz
+    dest: /usr/local/bin
+    remote_src: true
+    extra_opts: [--wildcards, lazydocker]
+  when: not lazydocker_installed.stat.exists
+
+- name: Verify lazydocker installation
+  command: lazydocker --version
+  register: lazydocker_version_output
+  changed_when: false
+
+- name: Display lazydocker version
+  debug:
+    msg:
+      - "lazydocker installation complete"
+      - "{{ lazydocker_version_output.stdout }}"

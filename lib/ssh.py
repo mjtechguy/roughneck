@@ -52,9 +52,9 @@ def connect(name: str, user: str = None) -> bool:
     if not key_path:
         return False
 
-    # Default to gastown user (created by ansible during deployment)
+    # Default to roughneck user (created by ansible during deployment)
     if user is None:
-        user = "gastown"
+        user = "roughneck"
 
     args = ["ssh"]
     if key_path:
@@ -77,7 +77,7 @@ def get_ssh_command(name: str, user: str = None) -> Optional[str]:
         return None
 
     if user is None:
-        user = "gastown"
+        user = "roughneck"
 
     key_path = get_private_key_path(name)
     if key_path:

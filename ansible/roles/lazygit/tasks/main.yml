@@ -1,0 +1,46 @@
+---
+# =============================================================================
+# Lazygit Installation Role
+# =============================================================================
+# Installs lazygit - a simple terminal UI for git commands
+
+- name: Get latest lazygit release version
+  uri:
+    url: https://api.github.com/repos/jesseduffield/lazygit/releases/latest
+    return_content: true
+  register: lazygit_release
+
+- name: Set lazygit version fact
+  set_fact:
+    lazygit_version: "{{ lazygit_release.json.tag_name | regex_replace('^v', '') }}"
+
+- name: Check if lazygit is installed
+  stat:
+    path: /usr/local/bin/lazygit
+  register: lazygit_installed
+
+- name: Download lazygit
+  get_url:
+    url: "https://github.com/jesseduffield/lazygit/releases/download/v{{ lazygit_version }}/lazygit_{{ lazygit_version }}_Linux_x86_64.tar.gz"
+    dest: /tmp/lazygit.tar.gz
+    mode: "0644"
+  when: not lazygit_installed.stat.exists
+
+- name: Extract and install lazygit
+  unarchive:
+    src: /tmp/lazygit.tar.gz
+    dest: /usr/local/bin
+    remote_src: true
+    extra_opts: [--wildcards, lazygit]
+  when: not lazygit_installed.stat.exists
+
+- name: Verify lazygit installation
+  command: lazygit --version
+  register: lazygit_version_output
+  changed_when: false
+
+- name: Display lazygit version
+  debug:
+    msg:
+      - "lazygit installation complete"
+      - "{{ lazygit_version_output.stdout }}"

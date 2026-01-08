@@ -1,46 +1,46 @@
 ---
-- name: Create Gas Town Mayor service
+- name: Create Roughneck Mayor service
   copy:
     content: |
       [Unit]
-      Description=Gas Town Mayor Service
+      Description=Roughneck Mayor Service
       After=network.target
 
       [Service]
       Type=simple
-      User={{ gastown_user }}
-      WorkingDirectory=/home/{{ gastown_user }}/gt
-      Environment="PATH=/home/{{ gastown_user }}/go/bin:/usr/local/go/bin:/usr/bin:/bin"
-      Environment="HOME=/home/{{ gastown_user }}"
-      ExecStart=/home/{{ gastown_user }}/go/bin/gt start mayor
+      User={{ roughneck_user }}
+      WorkingDirectory=/home/{{ roughneck_user }}/gt
+      Environment="PATH=/home/{{ roughneck_user }}/go/bin:/usr/local/go/bin:/usr/bin:/bin"
+      Environment="HOME=/home/{{ roughneck_user }}"
+      ExecStart=/home/{{ roughneck_user }}/go/bin/gt start mayor
       Restart=on-failure
       RestartSec=10
 
       [Install]
       WantedBy=multi-user.target
-    dest: /etc/systemd/system/gastown-mayor.service
+    dest: /etc/systemd/system/roughneck-mayor.service
     mode: "0644"
 
-- name: Create Gas Town Deacon service
+- name: Create Roughneck Deacon service
   copy:
     content: |
       [Unit]
-      Description=Gas Town Deacon Service
-      After=network.target gastown-mayor.service
+      Description=Roughneck Deacon Service
+      After=network.target roughneck-mayor.service
 
       [Service]
       Type=simple
-      User={{ gastown_user }}
-      WorkingDirectory=/home/{{ gastown_user }}/gt
-      Environment="PATH=/home/{{ gastown_user }}/go/bin:/usr/local/go/bin:/usr/bin:/bin"
-      Environment="HOME=/home/{{ gastown_user }}"
-      ExecStart=/home/{{ gastown_user }}/go/bin/gt start deacon
+      User={{ roughneck_user }}
+      WorkingDirectory=/home/{{ roughneck_user }}/gt
+      Environment="PATH=/home/{{ roughneck_user }}/go/bin:/usr/local/go/bin:/usr/bin:/bin"
+      Environment="HOME=/home/{{ roughneck_user }}"
+      ExecStart=/home/{{ roughneck_user }}/go/bin/gt start deacon
       Restart=on-failure
       RestartSec=10
 
       [Install]
       WantedBy=multi-user.target
-    dest: /etc/systemd/system/gastown-deacon.service
+    dest: /etc/systemd/system/roughneck-deacon.service
     mode: "0644"
 
 - name: Reload systemd
@@ -49,12 +49,12 @@
 
 - name: Enable and start Mayor service
   systemd:
-    name: gastown-mayor
+    name: roughneck-mayor
     enabled: true
     state: started
 
 - name: Enable and start Deacon service
   systemd:
-    name: gastown-deacon
+    name: roughneck-deacon
     enabled: true
     state: started

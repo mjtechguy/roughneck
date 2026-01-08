@@ -1,0 +1,23 @@
+---
+# =============================================================================
+# GitHub Copilot CLI Installation Role
+# =============================================================================
+# Installs GitHub Copilot CLI as a gh extension for the roughneck user
+
+- name: Install gh-copilot extension
+  become_user: "{{ roughneck_user }}"
+  command: gh extension install github/gh-copilot
+  args:
+    creates: "/home/{{ roughneck_user }}/.local/share/gh/extensions/gh-copilot"
+
+- name: Verify gh-copilot extension installation
+  become_user: "{{ roughneck_user }}"
+  command: gh extension list
+  register: gh_extensions
+  changed_when: false
+
+- name: Display Copilot CLI status
+  debug:
+    msg:
+      - "GitHub Copilot CLI installation complete"
+      - "Installed extensions: {{ gh_extensions.stdout_lines }}"

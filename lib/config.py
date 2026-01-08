@@ -40,9 +40,9 @@ class DeploymentConfig:
     digitalocean_size: str = "s-2vcpu-4gb"
     digitalocean_region: str = "nyc1"
 
-    # Gas Town
-    gastown_repo: str = "https://github.com/steveyegge/gastown.git"
-    gastown_branch: str = "main"
+    # Roughneck
+    roughneck_repo: str = "https://github.com/steveyegge/roughneck.git"
+    roughneck_branch: str = "main"
 
     # Claude
     anthropic_api_key: str = ""
@@ -201,9 +201,9 @@ def write_tfvars(name: str, config: DeploymentConfig) -> None:
         f"enable_firewall      = {str(config.enable_firewall).lower()}",
         f"firewall_allowed_ips = {allowed_ips_hcl}",
         "",
-        "# Gas Town",
-        f'gastown_repo   = "{config.gastown_repo}"',
-        f'gastown_branch = "{config.gastown_branch}"',
+        "# Roughneck",
+        f'roughneck_repo   = "{config.roughneck_repo}"',
+        f'roughneck_branch = "{config.roughneck_branch}"',
         "",
         "# Claude",
         f'anthropic_api_key = "{config.anthropic_api_key}"',

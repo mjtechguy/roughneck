@@ -66,15 +66,15 @@ variable "firewall_allowed_ips" {
   default     = []
 }
 
-# Gas Town
-variable "gastown_repo" {
-  description = "Gas Town git repository URL"
+# Roughneck
+variable "roughneck_repo" {
+  description = "Roughneck git repository URL"
   type        = string
-  default     = "https://github.com/steveyegge/gastown.git"
+  default     = "https://github.com/steveyegge/roughneck.git"
 }
 
-variable "gastown_branch" {
-  description = "Gas Town git branch"
+variable "roughneck_branch" {
+  description = "Roughneck git branch"
   type        = string
   default     = "main"
 }

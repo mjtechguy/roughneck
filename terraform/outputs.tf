@@ -1,5 +1,5 @@
 output "server_ip" {
-  description = "Public IP address of the Gas Town server"
+  description = "Public IP address of the Roughneck server"
   value       = local.server_ip
 }
 
@@ -8,9 +8,9 @@ output "ssh_command" {
   value       = "ssh -i ${local.private_key_path} root@${local.server_ip}"
 }
 
-output "ssh_command_gastown_user" {
-  description = "SSH command to connect as gastown user (after Ansible runs)"
-  value       = "ssh -i ${local.private_key_path} gastown@${local.server_ip}"
+output "ssh_command_roughneck_user" {
+  description = "SSH command to connect as roughneck user (after Ansible runs)"
+  value       = "ssh -i ${local.private_key_path} roughneck@${local.server_ip}"
 }
 
 output "private_key_path" {

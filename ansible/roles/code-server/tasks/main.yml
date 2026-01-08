@@ -16,34 +16,34 @@
 
 - name: Create code-server config directory
   file:
-    path: /home/{{ gastown_user }}/.config/code-server
+    path: /home/{{ roughneck_user }}/.config/code-server
     state: directory
-    owner: "{{ gastown_user }}"
-    group: "{{ gastown_user }}"
+    owner: "{{ roughneck_user }}"
+    group: "{{ roughneck_user }}"
     mode: '0755'
 
 - name: Create code-server data directory
   file:
-    path: /home/{{ gastown_user }}/.local/share/code-server
+    path: /home/{{ roughneck_user }}/.local/share/code-server
     state: directory
-    owner: "{{ gastown_user }}"
-    group: "{{ gastown_user }}"
+    owner: "{{ roughneck_user }}"
+    group: "{{ roughneck_user }}"
     mode: '0755'
 
 - name: Deploy code-server config file
   template:
     src: config.yaml.j2
-    dest: /home/{{ gastown_user }}/.config/code-server/config.yaml
-    owner: "{{ gastown_user }}"
-    group: "{{ gastown_user }}"
+    dest: /home/{{ roughneck_user }}/.config/code-server/config.yaml
+    owner: "{{ roughneck_user }}"
+    group: "{{ roughneck_user }}"
     mode: '0600'
 
 - name: Store password in file for later retrieval
   copy:
     content: "{{ codeserver_password }}"
-    dest: /home/{{ gastown_user }}/.config/code-server/password.txt
-    owner: "{{ gastown_user }}"
-    group: "{{ gastown_user }}"
+    dest: /home/{{ roughneck_user }}/.config/code-server/password.txt
+    owner: "{{ roughneck_user }}"
+    group: "{{ roughneck_user }}"
     mode: '0600'
 
 - name: Deploy code-server systemd service

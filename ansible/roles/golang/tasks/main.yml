@@ -33,10 +33,10 @@
     dest: /etc/profile.d/golang.sh
     mode: "0644"
 
-- name: Create go directory for gastown user
+- name: Create go directory for roughneck user
   file:
-    path: "/home/{{ gastown_user }}/go/bin"
+    path: "/home/{{ roughneck_user }}/go/bin"
     state: directory
-    owner: "{{ gastown_user }}"
-    group: "{{ gastown_user }}"
+    owner: "{{ roughneck_user }}"
+    group: "{{ roughneck_user }}"
     mode: "0755"

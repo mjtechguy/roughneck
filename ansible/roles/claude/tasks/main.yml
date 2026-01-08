@@ -24,29 +24,29 @@
 
 - name: Create Claude config directory
   file:
-    path: "/home/{{ gastown_user }}/.claude"
+    path: "/home/{{ roughneck_user }}/.claude"
     state: directory
-    owner: "{{ gastown_user }}"
-    group: "{{ gastown_user }}"
+    owner: "{{ roughneck_user }}"
+    group: "{{ roughneck_user }}"
     mode: "0700"
   when: anthropic_api_key | length > 0
 
 - name: Configure Anthropic API key
   copy:
     content: "{{ anthropic_api_key }}"
-    dest: "/home/{{ gastown_user }}/.claude/api_key"
-    owner: "{{ gastown_user }}"
-    group: "{{ gastown_user }}"
+    dest: "/home/{{ roughneck_user }}/.claude/api_key"
+    owner: "{{ roughneck_user }}"
+    group: "{{ roughneck_user }}"
     mode: "0600"
   when: anthropic_api_key | length > 0
 
 - name: Add ANTHROPIC_API_KEY to environment
   lineinfile:
-    path: "/home/{{ gastown_user }}/.bashrc"
+    path: "/home/{{ roughneck_user }}/.bashrc"
     line: 'export ANTHROPIC_API_KEY="$(cat ~/.claude/api_key 2>/dev/null)"'
     create: true
-    owner: "{{ gastown_user }}"
-    group: "{{ gastown_user }}"
+    owner: "{{ roughneck_user }}"
+    group: "{{ roughneck_user }}"
   when: anthropic_api_key | length > 0
 
 - name: Note about manual Claude login

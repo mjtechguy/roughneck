@@ -1,0 +1,22 @@
+---
+# =============================================================================
+# Google Gemini CLI Installation Role
+# =============================================================================
+# Installs Google Gemini CLI via npm global package
+
+- name: Install Google Gemini CLI via npm
+  npm:
+    name: "@google/gemini-cli"
+    global: true
+    state: present
+
+- name: Verify Gemini CLI installation
+  command: gemini --version
+  register: gemini_version
+  changed_when: false
+
+- name: Display Gemini CLI version
+  debug:
+    msg:
+      - "Google Gemini CLI installation complete"
+      - "{{ gemini_version.stdout_lines[0] }}"

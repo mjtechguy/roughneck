@@ -1,0 +1,22 @@
+---
+# =============================================================================
+# OpenAI Codex CLI Installation Role
+# =============================================================================
+# Installs OpenAI Codex CLI via npm global package
+
+- name: Install OpenAI Codex CLI via npm
+  npm:
+    name: "@openai/codex"
+    global: true
+    state: present
+
+- name: Verify Codex CLI installation
+  command: codex --version
+  register: codex_version
+  changed_when: false
+
+- name: Display Codex CLI version
+  debug:
+    msg:
+      - "OpenAI Codex CLI installation complete"
+      - "{{ codex_version.stdout_lines[0] }}"
