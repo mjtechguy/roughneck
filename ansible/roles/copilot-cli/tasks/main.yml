@@ -2,22 +2,35 @@
 # =============================================================================
 # GitHub Copilot CLI Installation Role
 # =============================================================================
-# Installs GitHub Copilot CLI as a gh extension for the roughneck user
+# Note: gh extension install requires authentication. This role will skip
+# installation if gh is not authenticated, and the user can install later.
 
-- name: Install gh-copilot extension
+- name: Check if gh is authenticated
+  become_user: "{{ roughneck_user }}"
+  command: gh auth status
+  register: gh_auth_status
+  changed_when: false
+  failed_when: false
+
+- name: Install gh-copilot extension (if authenticated)
   become_user: "{{ roughneck_user }}"
   command: gh extension install github/gh-copilot
   args:
     creates: "/home/{{ roughneck_user }}/.local/share/gh/extensions/gh-copilot"
+  when: gh_auth_status.rc == 0
+
+- name: Note about Copilot CLI (if not authenticated)
+  debug:
+    msg: "GitHub Copilot CLI skipped - run 'gh auth login' then 'gh extension install github/gh-copilot'"
+  when: gh_auth_status.rc != 0
 
 - name: Verify gh-copilot extension installation
   become_user: "{{ roughneck_user }}"
   command: gh extension list
   register: gh_extensions
   changed_when: false
+  failed_when: false
 
 - name: Display Copilot CLI status
   debug:
-    msg:
-      - "GitHub Copilot CLI installation complete"
-      - "Installed extensions: {{ gh_extensions.stdout_lines }}"
+    msg: "GitHub Copilot CLI: {{ 'installed' if 'gh-copilot' in (gh_extensions.stdout | default('')) else 'not installed (requires gh auth login first)' }}"
