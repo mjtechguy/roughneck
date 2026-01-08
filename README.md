@@ -144,8 +144,10 @@ When creating a new deployment, you'll be prompted for:
 
 ## What Gets Installed
 
+- **Zsh + Oh-My-Zsh** - Modern shell with autosuggestions and syntax highlighting
 - **Go 1.23+** - From go.dev/dl
 - **Git 2.43+** - Ubuntu 24.04 default
+- **GitHub CLI (gh)** - GitHub operations from the command line
 - **tmux 3.4+** - Ubuntu 24.04 default
 - **Docker Engine** - Container runtime with Docker Compose v2 plugin
 - **code-server** - VS Code in the browser (port 10000) with secure password auth
@@ -258,8 +260,10 @@ roughneck/
     │   └── installation-summary.txt.j2  # Installation report
     └── roles/
         ├── common/             # Base packages, user setup
+        ├── zsh/                # Zsh + oh-my-zsh + plugins
         ├── golang/             # Go installation
         ├── git/                # Git config
+        ├── github-cli/         # GitHub CLI (gh)
         ├── tmux/               # tmux config
         ├── docker/             # Docker Engine + Compose v2
         ├── code-server/        # VS Code web IDE

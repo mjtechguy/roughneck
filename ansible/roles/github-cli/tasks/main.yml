@@ -1,0 +1,53 @@
+---
+# =============================================================================
+# GitHub CLI Installation Role
+# =============================================================================
+# Installs GitHub CLI (gh) from official APT repository
+
+- name: Install prerequisites
+  apt:
+    name:
+      - ca-certificates
+      - curl
+      - gnupg
+    state: present
+    update_cache: true
+
+- name: Create directory for GitHub CLI GPG key
+  file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+
+- name: Add GitHub CLI GPG key
+  shell: |
+    curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | gpg --dearmor -o /etc/apt/keyrings/githubcli-archive-keyring.gpg
+    chmod a+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
+  args:
+    creates: /etc/apt/keyrings/githubcli-archive-keyring.gpg
+
+- name: Add GitHub CLI APT repository
+  apt_repository:
+    repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main"
+    state: present
+    filename: github-cli
+
+- name: Update apt cache
+  apt:
+    update_cache: true
+
+- name: Install GitHub CLI
+  apt:
+    name: gh
+    state: present
+
+- name: Verify GitHub CLI installation
+  command: gh --version
+  register: gh_version
+  changed_when: false
+
+- name: Display GitHub CLI version
+  debug:
+    msg:
+      - "GitHub CLI installation complete"
+      - "{{ gh_version.stdout_lines[0] }}"

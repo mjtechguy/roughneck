@@ -10,8 +10,10 @@ INSTALLED COMPONENTS
 --------------------------------------------------------------------------------
 
 System Tools:
+  ✓ Zsh                 {{ zsh_version_output.stdout | regex_search('([0-9.]+)', '\\1') | first | default('installed') }} (oh-my-zsh)
   ✓ Go                  {{ go_version_output.stdout | regex_search('go([0-9.]+)', '\\1') | first }}
   ✓ Git                 {{ git_version_output.stdout | regex_search('([0-9.]+)', '\\1') | first }}
+  ✓ GitHub CLI          {{ gh_version_output.stdout_lines[0] | regex_search('([0-9.]+)', '\\1') | first | default('installed') }}
   ✓ tmux                {{ tmux_version_output.stdout | regex_replace('tmux ', '') }}
   ✓ Node.js             {{ node_version_output.stdout | regex_replace('v', '') }}
   ✓ npm                 {{ npm_version_output.stdout }}

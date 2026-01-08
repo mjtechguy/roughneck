@@ -9,8 +9,10 @@
 
   roles:
     - common
+    - zsh
     - golang
     - git
+    - github-cli
     - tmux
     - docker
     - code-server
@@ -41,6 +43,18 @@
       command: git --version
       register: git_version_output
       changed_when: false
+
+    - name: Get GitHub CLI version
+      command: gh --version
+      register: gh_version_output
+      changed_when: false
+      failed_when: false
+
+    - name: Get Zsh version
+      command: zsh --version
+      register: zsh_version_output
+      changed_when: false
+      failed_when: false
 
     - name: Get tmux version
       command: tmux -V

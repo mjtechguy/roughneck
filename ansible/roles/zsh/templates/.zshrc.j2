@@ -1,0 +1,92 @@
+# =============================================================================
+# Zsh Configuration for {{ gastown_user }}
+# =============================================================================
+# Managed by Ansible - Do not edit manually
+
+# Path to oh-my-zsh installation
+export ZSH="/home/{{ gastown_user }}/.oh-my-zsh"
+
+# Theme configuration
+ZSH_THEME="robbyrussell"
+
+# Plugin configuration
+# - git: Git aliases and prompt info
+# - docker: Docker command completion
+# - zsh-autosuggestions: Fish-like command suggestions
+# - zsh-syntax-highlighting: Syntax highlighting for commands
+plugins=(
+    git
+    docker
+    zsh-autosuggestions
+    zsh-syntax-highlighting
+)
+
+# Load oh-my-zsh
+source $ZSH/oh-my-zsh.sh
+
+# =============================================================================
+# PATH Configuration
+# =============================================================================
+
+# Go binaries
+if [ -d "/usr/local/go/bin" ]; then
+    export PATH="/usr/local/go/bin:$PATH"
+fi
+
+# Go workspace binaries
+if [ -d "/home/{{ gastown_user }}/go/bin" ]; then
+    export GOPATH="/home/{{ gastown_user }}/go"
+    export PATH="$GOPATH/bin:$PATH"
+fi
+
+# User local binaries
+if [ -d "/home/{{ gastown_user }}/.local/bin" ]; then
+    export PATH="/home/{{ gastown_user }}/.local/bin:$PATH"
+fi
+
+# User bin directory
+if [ -d "/home/{{ gastown_user }}/bin" ]; then
+    export PATH="/home/{{ gastown_user }}/bin:$PATH"
+fi
+
+# =============================================================================
+# Zsh Autosuggestions Configuration
+# =============================================================================
+ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#666666"
+ZSH_AUTOSUGGEST_STRATEGY=(history completion)
+
+# =============================================================================
+# General Settings
+# =============================================================================
+
+# History settings
+HISTSIZE=10000
+SAVEHIST=10000
+setopt SHARE_HISTORY
+setopt HIST_IGNORE_DUPS
+setopt HIST_IGNORE_SPACE
+
+# Better directory navigation
+setopt AUTO_CD
+setopt AUTO_PUSHD
+setopt PUSHD_SILENT
+
+# Completion settings
+setopt COMPLETE_IN_WORD
+setopt ALWAYS_TO_END
+
+# =============================================================================
+# Aliases
+# =============================================================================
+alias ll='ls -alF'
+alias la='ls -A'
+alias l='ls -CF'
+alias ..='cd ..'
+alias ...='cd ../..'
+
+# =============================================================================
+# Local customizations (not managed by Ansible)
+# =============================================================================
+if [ -f "/home/{{ gastown_user }}/.zshrc.local" ]; then
+    source "/home/{{ gastown_user }}/.zshrc.local"
+fi

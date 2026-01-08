@@ -8,10 +8,11 @@ This Ansible playbook automates the installation and configuration of all depend
 
 ## Features
 
-- **Complete Development Environment**: Installs Go, Git, tmux, Node.js, and other essential tools
+- **Modern Shell**: Zsh with oh-my-zsh, autosuggestions, and syntax highlighting
+- **Complete Development Environment**: Installs Go, Git, GitHub CLI, tmux, Node.js, and other essential tools
 - **Container Platform**: Docker Engine + Docker Compose v2 for containerized applications
 - **Web IDE**: code-server (VS Code in the browser) with secure password authentication
-- **CLI Tools**: Claude Code CLI, beads, and Gas Town binaries
+- **CLI Tools**: Claude Code CLI, GitHub CLI, beads, and Gas Town binaries
 - **Service Management**: Optional systemd services for Gas Town Mayor and Deacon
 - **Comprehensive Reporting**: Detailed installation summary with versions, service statuses, and access information
 
@@ -72,29 +73,42 @@ The playbook executes the following roles in order:
    - Installs essential packages (curl, wget, build-essential, etc.)
    - Configures system prerequisites
 
-2. **golang** - Go programming language
+2. **zsh** - Modern shell environment
+   - Installs Zsh and sets as default shell
+   - Installs oh-my-zsh framework
+   - Adds zsh-autosuggestions plugin (Fish-like suggestions)
+   - Adds zsh-syntax-highlighting plugin
+   - Configures PATH for Go and user binaries
+   - Theme: robbyrussell
+
+3. **golang** - Go programming language
    - Installs Go 1.23.4 to `/usr/local/go`
    - Configures PATH in user profile
    - Verifies installation
 
-3. **git** - Version control
+4. **git** - Version control
    - Installs Git
    - Configures user name and email
 
-4. **tmux** - Terminal multiplexer
+5. **github-cli** - GitHub CLI (gh)
+   - Installs GitHub CLI from official APT repository
+   - Enables `gh` commands for repos, PRs, issues, etc.
+   - Verifies installation
+
+6. **tmux** - Terminal multiplexer
    - Installs tmux
    - Deploys custom configuration
 
 ### Container & Development Roles
 
-5. **docker** - Container platform
+7. **docker** - Container platform
    - Installs Docker Engine from official repository
    - Installs Docker Compose v2 plugin
    - Adds gastown user to docker group
    - Starts and enables Docker service
    - Verifies installation
 
-6. **code-server** - Web IDE
+8. **code-server** - Web IDE
    - Installs code-server via official install script
    - Generates secure 24-character random password
    - Creates systemd service
@@ -104,24 +118,24 @@ The playbook executes the following roles in order:
 
 ### CLI Tools Roles
 
-7. **beads** - Beads CLI tool
+9. **beads** - Beads CLI tool
    - Installs beads via Go
    - Binary location: `~/go/bin/bd`
 
-8. **claude** - Claude Code CLI
-   - Installs Node.js 22.x via NodeSource repository
-   - Installs Claude Code CLI globally via npm
-   - Configures API key if provided
+10. **claude** - Claude Code CLI
+    - Installs Node.js 22.x via NodeSource repository
+    - Installs Claude Code CLI globally via npm
+    - Configures API key if provided
 
 ### Application Roles
 
-9. **gastown** - Gas Town application
-   - Clones Gas Town repository to `~/gt`
-   - Builds Gas Town binary
-   - Initializes headquarters
-   - Binary location: `~/go/bin/gt`
+11. **gastown** - Gas Town application
+    - Clones Gas Town repository to `~/gt`
+    - Builds Gas Town binary
+    - Initializes headquarters
+    - Binary location: `~/go/bin/gt`
 
-10. **systemd** (conditional) - Service management
+12. **systemd** (conditional) - Service management
     - Creates systemd units for gastown-mayor and gastown-deacon
     - Only runs when `enable_systemd_services` is `true`
 
@@ -130,7 +144,8 @@ The playbook executes the following roles in order:
 After all roles complete, the playbook generates a comprehensive installation summary that includes:
 
 ### Installed Components
-- System tools with versions (Go, Git, tmux, Node.js, npm)
+- Shell environment (Zsh with oh-my-zsh, autosuggestions, syntax highlighting)
+- System tools with versions (Go, Git, GitHub CLI, tmux, Node.js, npm)
 - Container platform (Docker, Docker Compose)
 - Development tools (code-server, Claude CLI, beads, Gas Town)
 
@@ -329,6 +344,41 @@ vars:
 ```
 
 ## Changelog
+
+### 2025-01-08 - Added Zsh, Oh-My-Zsh, and GitHub CLI
+
+**Added:**
+- **zsh role**: Modern shell environment with oh-my-zsh framework
+  - Installs Zsh and sets as default shell for gastown user
+  - Installs oh-my-zsh with robbyrussell theme
+  - Installs zsh-autosuggestions plugin (Fish-like command suggestions)
+  - Installs zsh-syntax-highlighting plugin (command syntax coloring)
+  - Configures PATH for Go binaries, user binaries, and local bin
+  - Includes useful aliases and history settings
+  - Supports local customizations via `~/.zshrc.local`
+
+- **github-cli role**: GitHub CLI (gh) for repository management
+  - Installs from official GitHub APT repository
+  - Enables `gh repo`, `gh pr`, `gh issue`, and other GitHub commands
+  - Verifies installation with version check
+
+**Changed:**
+- Role execution order: zsh runs early (after common) for shell consistency
+- GitHub CLI runs after git role (logical grouping)
+- Updated installation summary template with Zsh and GitHub CLI versions
+- Added version checks in post_tasks for new tools
+
+**New File Structure:**
+```
+roles/
+├── zsh/
+│   ├── tasks/main.yml
+│   └── templates/.zshrc.j2
+└── github-cli/
+    └── tasks/main.yml
+```
+
+---
 
 ### 2025-01-07 - Enhanced Installation Reporting
 
