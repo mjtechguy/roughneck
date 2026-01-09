@@ -174,3 +174,19 @@ variable "enable_systemd_services" {
   type        = bool
   default     = false
 }
+
+# =============================================================================
+# TLS Configuration
+# =============================================================================
+
+variable "enable_letsencrypt" {
+  description = "Enable Let's Encrypt TLS with Caddy reverse proxy"
+  type        = bool
+  default     = false
+}
+
+variable "domain_name" {
+  description = "Domain name for Let's Encrypt certificate (required when enable_letsencrypt is true)"
+  type        = string
+  default     = ""
+}

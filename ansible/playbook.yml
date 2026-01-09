@@ -23,6 +23,8 @@
     - docker
     # Development environment
     - code-server
+    - role: caddy
+      when: enable_letsencrypt | default(false) | bool
     - direnv
     - mise
     - lazygit
@@ -189,6 +191,13 @@
       register: codeserver_service_status
       changed_when: false
       failed_when: false
+
+    - name: Check Caddy service status
+      command: systemctl is-active caddy
+      register: caddy_service_status
+      changed_when: false
+      failed_when: false
+      when: enable_letsencrypt | default(false) | bool
 
     - name: Read code-server password from server
       slurp:

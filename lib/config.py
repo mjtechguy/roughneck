@@ -50,6 +50,10 @@ class DeploymentConfig:
     enable_k9s: bool = False
     enable_systemd_services: bool = False
 
+    # TLS Configuration
+    enable_letsencrypt: bool = False
+    domain_name: str = ""
+
 
 def get_root_dir() -> Path:
     """Get the root directory of roughneck."""
@@ -202,6 +206,10 @@ def write_tfvars(name: str, config: DeploymentConfig) -> None:
         f"enable_beads            = {str(config.enable_beads).lower()}",
         f"enable_k9s              = {str(config.enable_k9s).lower()}",
         f"enable_systemd_services = {str(config.enable_systemd_services).lower()}",
+        "",
+        "# TLS Configuration",
+        f"enable_letsencrypt = {str(config.enable_letsencrypt).lower()}",
+        f'domain_name        = "{config.domain_name}"',
     ])
 
     tfvars_path = deploy_dir / "terraform.tfvars"

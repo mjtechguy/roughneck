@@ -24,6 +24,9 @@ Container Platform:
 
 Development Environment:
   ✓ code-server         {{ codeserver_version_output.stdout | regex_search('([0-9.]+)', '\\1') | first | default('installed') }}
+{% if enable_letsencrypt | default(false) | bool %}
+  ✓ Caddy               {{ caddy_version_output.stdout | default('installed') }}
+{% endif %}
   ✓ direnv              {{ direnv_version_output.stdout | default('installed') }}
   ✓ mise                {{ mise_version_output.stdout | regex_search('([0-9.]+)', '\\1') | first | default('installed') }}
   ✓ lazygit             {{ lazygit_version_output.stdout | regex_search('([0-9.]+)', '\\1') | first | default('installed') }}
@@ -51,7 +54,12 @@ SERVICE STATUS
 --------------------------------------------------------------------------------
 
   {{ '✓' if docker_service_status.stdout == 'active' else '✗' }} docker              [{{ docker_service_status.stdout | upper }}]
+{% if enable_letsencrypt | default(false) | bool %}
+  {{ '✓' if codeserver_service_status.stdout == 'active' else '✗' }} code-server         [{{ codeserver_service_status.stdout | upper }}] - localhost:10000
+  {{ '✓' if caddy_service_status.stdout | default('inactive') == 'active' else '✗' }} caddy               [{{ caddy_service_status.stdout | default('inactive') | upper }}] - Ports 80, 443
+{% else %}
   {{ '✓' if codeserver_service_status.stdout == 'active' else '✗' }} code-server         [{{ codeserver_service_status.stdout | upper }}] - Port 10000
+{% endif %}
 {% if enable_systemd_services | default(false) | bool %}
   {{ '✓' if mayor_service_status.stdout == 'active' else '✗' }} roughneck-mayor     [{{ mayor_service_status.stdout | upper }}]
   {{ '✓' if deacon_service_status.stdout == 'active' else '✗' }} roughneck-deacon    [{{ deacon_service_status.stdout | upper }}]
@@ -65,7 +73,11 @@ SSH Access:
   ssh -i {{ ansible_ssh_private_key_file }} roughneck@{{ inventory_hostname }}
 
 Web IDE (code-server):
+{% if enable_letsencrypt | default(false) | bool %}
+  URL:      https://{{ domain_name }}  (Let's Encrypt)
+{% else %}
   URL:      https://{{ inventory_hostname }}:10000  (self-signed cert)
+{% endif %}
   Password: {{ codeserver_password }}
 
 AI Assistants:
@@ -85,7 +97,11 @@ NEXT STEPS
 --------------------------------------------------------------------------------
 
 1. SSH into the server as the 'roughneck' user
+{% if enable_letsencrypt | default(false) | bool %}
+2. Access code-server in your browser at https://{{ domain_name }}
+{% else %}
 2. Access code-server in your browser at https://{{ inventory_hostname }}:10000
+{% endif %}
 3. Authenticate your AI assistants (Claude, Codex, Gemini, Copilot)
 4. Use lazygit/lazydocker for visual Git/Docker management
 5. Configure mise for per-project tool versions

@@ -1,0 +1,13 @@
+# Caddyfile for code-server reverse proxy with Let's Encrypt
+# Domain: {{ domain_name }}
+
+{{ domain_name }} {
+    reverse_proxy localhost:10000
+
+    # Security headers
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+    }
+}

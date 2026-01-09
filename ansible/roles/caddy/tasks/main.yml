@@ -1,0 +1,71 @@
+---
+# =============================================================================
+# Caddy Installation Role (Let's Encrypt reverse proxy)
+# =============================================================================
+# Installs Caddy web server for automatic HTTPS with Let's Encrypt.
+# Only runs when enable_letsencrypt is true.
+
+- name: Install required packages for Caddy
+  apt:
+    name:
+      - debian-keyring
+      - debian-archive-keyring
+      - apt-transport-https
+      - curl
+    state: present
+    update_cache: true
+
+- name: Add Caddy GPG key
+  shell: |
+    curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+  args:
+    creates: /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+
+- name: Add Caddy repository
+  copy:
+    dest: /etc/apt/sources.list.d/caddy-stable.list
+    content: |
+      deb [signed-by=/usr/share/keyrings/caddy-stable-archive-keyring.gpg] https://dl.cloudsmith.io/public/caddy/stable/deb/debian any-version main
+      deb-src [signed-by=/usr/share/keyrings/caddy-stable-archive-keyring.gpg] https://dl.cloudsmith.io/public/caddy/stable/deb/debian any-version main
+    mode: '0644'
+  register: caddy_repo
+
+- name: Update apt cache after adding Caddy repo
+  apt:
+    update_cache: true
+  when: caddy_repo.changed
+
+- name: Install Caddy
+  apt:
+    name: caddy
+    state: present
+
+- name: Create Caddy config directory
+  file:
+    path: /etc/caddy
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Deploy Caddyfile
+  template:
+    src: Caddyfile.j2
+    dest: /etc/caddy/Caddyfile
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Reload Caddy
+
+- name: Enable and start Caddy service
+  systemd:
+    name: caddy
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Get Caddy version
+  command: caddy version
+  register: caddy_version_output
+  changed_when: false
+  failed_when: false

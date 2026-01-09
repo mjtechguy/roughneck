@@ -71,6 +71,22 @@ resource "aws_vpc_security_group_ingress_rule" "icmp" {
 }
 
 # ---------------------------------------------------------------------------
+# Let's Encrypt ACME - Port 80 must be open to all for HTTP-01 challenge
+# ---------------------------------------------------------------------------
+# Only needed when LE is enabled AND IP restrictions are set
+# (otherwise 0.0.0.0/0 is already allowed above)
+
+resource "aws_vpc_security_group_ingress_rule" "http_acme" {
+  count             = var.enable_letsencrypt && length(var.firewall_allowed_ips) > 0 ? 1 : 0
+  security_group_id = aws_security_group.node.id
+  description       = "HTTP for Let's Encrypt ACME validation"
+  from_port         = 80
+  to_port           = 80
+  ip_protocol       = "tcp"
+  cidr_ipv4         = "0.0.0.0/0"
+}
+
+# ---------------------------------------------------------------------------
 # Outbound Rules - Allow all
 # ---------------------------------------------------------------------------
 

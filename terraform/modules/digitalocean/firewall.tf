@@ -50,6 +50,21 @@ resource "digitalocean_firewall" "node" {
   }
 
   # ---------------------------------------------------------------------------
+  # Let's Encrypt ACME - Port 80 must be open to all for HTTP-01 challenge
+  # ---------------------------------------------------------------------------
+  # Only needed when LE is enabled AND IP restrictions are set
+  # (otherwise 0.0.0.0/0 is already allowed above)
+
+  dynamic "inbound_rule" {
+    for_each = var.enable_letsencrypt && length(var.firewall_allowed_ips) > 0 ? [1] : []
+    content {
+      protocol         = "tcp"
+      port_range       = "80"
+      source_addresses = ["0.0.0.0/0", "::/0"]
+    }
+  }
+
+  # ---------------------------------------------------------------------------
   # Outbound Rules - Allow all
   # ---------------------------------------------------------------------------
 

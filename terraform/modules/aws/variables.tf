@@ -43,3 +43,13 @@ variable "firewall_allowed_ips" {
   type        = list(string)
   default     = []
 }
+
+# =============================================================================
+# TLS Configuration
+# =============================================================================
+
+variable "enable_letsencrypt" {
+  description = "Enable Let's Encrypt TLS (requires port 80 open for ACME)"
+  type        = bool
+  default     = false
+}

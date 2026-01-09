@@ -220,6 +220,15 @@ def prompt_new_config(name: str) -> config.DeploymentConfig:
         cfg.enable_beads = cli.prompt_bool("Enable beads CLI?", default=False)
         cfg.enable_systemd_services = cli.prompt_bool("Enable systemd services (Mayor/Deacon)?", default=False)
 
+    # TLS Configuration
+    print()
+    cfg.enable_letsencrypt = cli.prompt_bool("Enable Let's Encrypt TLS (requires domain)?", default=False)
+    if cfg.enable_letsencrypt:
+        cfg.domain_name = cli.prompt("Domain name (e.g., dev.example.com)")
+        while not cfg.domain_name or "." not in cfg.domain_name:
+            cli.warn("Please enter a valid domain name")
+            cfg.domain_name = cli.prompt("Domain name (e.g., dev.example.com)")
+
     return cfg
 
 
@@ -247,6 +256,12 @@ def show_summary(name: str, cfg: config.DeploymentConfig) -> None:
             print(f"  Firewall:    Enabled (allow all)")
     else:
         print(f"  Firewall:    Disabled")
+
+    # TLS Configuration
+    if cfg.enable_letsencrypt:
+        print(f"  TLS:         Let's Encrypt ({cfg.domain_name})")
+    else:
+        print(f"  TLS:         Self-signed certificate")
 
     # Optional features
     features = []
@@ -380,12 +395,15 @@ def do_deploy(name: str) -> int:
     ip = config.get_deployment_ip(name)
     deploy_dir = config.get_deployment_dir(name)
     summary_file = deploy_dir / "installation-summary.txt"
+    cfg = config.read_tfvars(name)
 
     cli.header("Deployment Complete")
     ssh_cmd = ssh.get_ssh_command(name)
     if ssh_cmd:
         print(f"  SSH:         {cli.cyan(ssh_cmd)}")
-    if ip:
+    if cfg and cfg.enable_letsencrypt and cfg.domain_name:
+        print(f"  Code-server: {cli.cyan(f'https://{cfg.domain_name}')}  (Let's Encrypt)")
+    elif ip:
         print(f"  Code-server: {cli.cyan(f'https://{ip}:10000')}  (self-signed cert)")
     print()
     if summary_file.exists():

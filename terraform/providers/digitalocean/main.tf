@@ -57,6 +57,7 @@ module "digitalocean" {
   ssh_public_key       = local.ssh_public_key
   enable_firewall      = var.enable_firewall
   firewall_allowed_ips = var.firewall_allowed_ips
+  enable_letsencrypt   = var.enable_letsencrypt
 }
 
 # Ansible Inventory
@@ -71,6 +72,8 @@ resource "local_file" "ansible_inventory" {
     enable_beads            = var.enable_beads
     enable_k9s              = var.enable_k9s
     enable_systemd_services = var.enable_systemd_services
+    enable_letsencrypt      = var.enable_letsencrypt
+    domain_name             = var.domain_name
   })
   filename = "${var.deployment_dir}/inventory.ini"
 }
