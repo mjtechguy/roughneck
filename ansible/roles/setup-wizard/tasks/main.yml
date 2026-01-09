@@ -4,16 +4,29 @@
 # =============================================================================
 # Installs the interactive setup wizard for configuring AI coding assistants
 
-- name: Copy setup wizard script
-  copy:
-    src: setup-wizard.sh
-    dest: /usr/local/bin/setup
+- name: Install uv package manager
+  ansible.builtin.shell: curl -LsSf https://astral.sh/uv/install.sh | sh
+  args:
+    creates: /home/{{ roughneck_user }}/.local/bin/uv
+  become: true
+  become_user: "{{ roughneck_user }}"
+
+- name: Copy setup wizard to projects
+  ansible.builtin.copy:
+    src: roughneck-setup
+    dest: /home/{{ roughneck_user }}/projects/roughneck-setup
+    owner: "{{ roughneck_user }}"
+    group: "{{ roughneck_user }}"
     mode: "0755"
-    owner: root
-    group: root
+
+- name: Symlink roughneck-setup to PATH
+  ansible.builtin.file:
+    src: /home/{{ roughneck_user }}/projects/roughneck-setup
+    dest: /usr/local/bin/roughneck-setup
+    state: link
 
 - name: Display setup wizard info
-  debug:
+  ansible.builtin.debug:
     msg:
-      - "Setup wizard installed"
-      - "Run 'setup' after logging in to configure AI assistants"
+      - "Setup wizard installed at ~/projects/roughneck-setup"
+      - "Run 'roughneck-setup' after logging in to configure AI assistants"

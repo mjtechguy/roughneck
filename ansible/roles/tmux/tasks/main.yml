@@ -3,23 +3,3 @@
   apt:
     name: tmux
     state: present
-
-- name: Create minimal tmux config
-  copy:
-    content: |
-      # Enable mouse support
-      set -g mouse on
-
-      # Increase history limit
-      set -g history-limit 50000
-
-      # Start windows and panes at 1, not 0
-      set -g base-index 1
-      setw -g pane-base-index 1
-
-      # Renumber windows when one is closed
-      set -g renumber-windows on
-    dest: "/home/{{ roughneck_user }}/.tmux.conf"
-    owner: "{{ roughneck_user }}"
-    group: "{{ roughneck_user }}"
-    mode: "0644"

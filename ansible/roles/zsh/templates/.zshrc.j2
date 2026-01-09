@@ -103,6 +103,13 @@ if [ -f "/home/{{ roughneck_user }}/.local/bin/mise" ]; then
 fi
 
 # =============================================================================
+# Start in projects directory
+# =============================================================================
+if [ -d "/home/{{ roughneck_user }}/projects" ]; then
+    cd "/home/{{ roughneck_user }}/projects" 2>/dev/null || true
+fi
+
+# =============================================================================
 # Local customizations (not managed by Ansible)
 # =============================================================================
 if [ -f "/home/{{ roughneck_user }}/.zshrc.local" ]; then

@@ -1,0 +1,500 @@
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#     "typer>=0.9.0",
+#     "rich>=13.0.0",
+#     "questionary>=2.0.0",
+# ]
+# ///
+"""Roughneck Setup Wizard - Configure AI coding assistants and dev tools."""
+
+import os
+import subprocess
+from pathlib import Path
+from typing import Optional
+
+import questionary
+import typer
+from questionary import Style
+from rich.console import Console
+from rich.table import Table
+
+app = typer.Typer(
+    name="roughneck-setup",
+    help="Configure AI coding assistants and dev tools.",
+    no_args_is_help=False,
+    rich_markup_mode="rich",
+)
+
+console = Console()
+
+# Questionary style matching main CLI
+STYLE = Style([
+    ("qmark", "fg:cyan bold"),
+    ("question", "bold"),
+    ("answer", "fg:green"),
+    ("pointer", "fg:cyan bold"),
+    ("highlighted", "fg:cyan bold"),
+    ("selected", "fg:green"),
+])
+
+
+# =============================================================================
+# Output Helpers
+# =============================================================================
+
+
+def success(msg: str) -> None:
+    console.print(f"[green]✓[/green] {msg}")
+
+
+def info(msg: str) -> None:
+    console.print(f"[cyan]→[/cyan] {msg}")
+
+
+def warn(msg: str) -> None:
+    console.print(f"[yellow]![/yellow] [yellow]{msg}[/yellow]")
+
+
+def error(msg: str) -> None:
+    console.print(f"[red]✗[/red] [red]{msg}[/red]")
+
+
+def header(title: str) -> None:
+    console.print()
+    console.print(f"[bold]=== {title} ===[/bold]")
+    console.print()
+
+
+# =============================================================================
+# Status Checks
+# =============================================================================
+
+
+def cmd_exists(cmd: str) -> bool:
+    """Check if a command exists in PATH."""
+    return subprocess.run(
+        ["which", cmd], capture_output=True
+    ).returncode == 0
+
+
+def check_gh_auth() -> bool:
+    """Check if GitHub CLI is authenticated."""
+    return subprocess.run(
+        ["gh", "auth", "status"], capture_output=True
+    ).returncode == 0
+
+
+def check_claude_auth() -> bool:
+    """Check if Claude Code is authenticated."""
+    home = Path.home()
+    return (home / ".claude" / ".credentials.json").exists() or \
+           (home / ".claude" / "auth").is_dir()
+
+
+def check_gemini_auth() -> bool:
+    """Check if Gemini is configured."""
+    return bool(os.environ.get("GOOGLE_API_KEY")) or \
+           (Path.home() / ".config" / "gemini" / "credentials.json").exists()
+
+
+def check_codex_auth() -> bool:
+    """Check if Codex is configured."""
+    return bool(os.environ.get("OPENAI_API_KEY")) or \
+           (Path.home() / ".codex" / "config.json").exists()
+
+
+def check_git_config() -> bool:
+    """Check if git user.name and user.email are set."""
+    name = subprocess.run(
+        ["git", "config", "--global", "user.name"],
+        capture_output=True, text=True
+    ).stdout.strip()
+    email = subprocess.run(
+        ["git", "config", "--global", "user.email"],
+        capture_output=True, text=True
+    ).stdout.strip()
+    return bool(name and email)
+
+
+def check_copilot_installed() -> bool:
+    """Check if GitHub Copilot extension is installed."""
+    result = subprocess.run(
+        ["gh", "extension", "list"],
+        capture_output=True, text=True
+    )
+    return "gh-copilot" in result.stdout
+
+
+# =============================================================================
+# Service Configuration
+# =============================================================================
+
+
+def setup_git_config() -> None:
+    """Configure Git user.name and user.email."""
+    header("Git Configuration")
+
+    current_name = subprocess.run(
+        ["git", "config", "--global", "user.name"],
+        capture_output=True, text=True
+    ).stdout.strip()
+    current_email = subprocess.run(
+        ["git", "config", "--global", "user.email"],
+        capture_output=True, text=True
+    ).stdout.strip()
+
+    if current_name and current_email:
+        success("Already configured")
+        console.print(f"  Name:  {current_name}")
+        console.print(f"  Email: {current_email}")
+        console.print()
+        if not questionary.confirm(
+            "Reconfigure?", default=False, style=STYLE
+        ).ask():
+            return
+    else:
+        info("Git needs your name and email for commits")
+        console.print()
+
+    if questionary.confirm("Configure Git now?", default=True, style=STYLE).ask():
+        console.print()
+        name = questionary.text(
+            "Your name (for commits):",
+            default=current_name,
+            style=STYLE
+        ).ask()
+        if name:
+            subprocess.run(["git", "config", "--global", "user.name", name])
+
+        email = questionary.text(
+            "Your email (for commits):",
+            default=current_email,
+            style=STYLE
+        ).ask()
+        if email:
+            subprocess.run(["git", "config", "--global", "user.email", email])
+
+        if check_git_config():
+            success("Git configured")
+        else:
+            warn("Git config incomplete")
+
+
+def setup_github_cli() -> None:
+    """Configure GitHub CLI authentication."""
+    header("GitHub CLI")
+
+    if check_gh_auth():
+        success("Already authenticated")
+        subprocess.run(["gh", "auth", "status"])
+        console.print()
+        if not questionary.confirm(
+            "Re-authenticate?", default=False, style=STYLE
+        ).ask():
+            return
+    else:
+        info("GitHub CLI needs authentication for:")
+        console.print("  - Pushing/pulling private repos")
+        console.print("  - GitHub Copilot CLI")
+        console.print("  - Creating PRs, issues, etc.")
+        console.print()
+
+    if questionary.confirm("Configure GitHub CLI now?", default=True, style=STYLE).ask():
+        console.print()
+        info("Starting GitHub auth (follow the prompts)...")
+        console.print()
+        subprocess.run(["gh", "auth", "login"])
+        console.print()
+        if check_gh_auth():
+            success("GitHub CLI configured")
+        else:
+            error("GitHub auth may have failed")
+
+
+def setup_copilot_cli() -> None:
+    """Configure GitHub Copilot CLI extension."""
+    header("GitHub Copilot CLI")
+
+    if not check_gh_auth():
+        warn("GitHub CLI not authenticated - Copilot requires it")
+        console.print("  Run setup again after configuring GitHub CLI")
+        return
+
+    if check_copilot_installed():
+        success("Copilot extension installed")
+    else:
+        info("Installing Copilot CLI extension...")
+        subprocess.run(["gh", "extension", "install", "github/gh-copilot"])
+
+    info("Copilot CLI uses your GitHub auth")
+    console.print("  Usage: gh copilot suggest 'how to...'")
+    console.print("         gh copilot explain 'git rebase'")
+
+
+def setup_claude_cli() -> None:
+    """Configure Claude Code CLI."""
+    header("Claude Code CLI")
+
+    if check_claude_auth():
+        success("Already authenticated")
+        if not questionary.confirm(
+            "Re-authenticate?", default=False, style=STYLE
+        ).ask():
+            return
+    else:
+        info("Claude Code needs authentication for AI coding assistance")
+        console.print()
+
+    if questionary.confirm("Configure Claude Code now?", default=True, style=STYLE).ask():
+        console.print()
+        info("Starting Claude auth (opens browser)...")
+        console.print()
+        subprocess.run(["claude", "login"])
+        console.print()
+        if check_claude_auth():
+            success("Claude Code configured")
+        else:
+            warn("Auth status unclear - try running 'claude' to verify")
+
+
+def setup_gemini_cli() -> None:
+    """Configure Google Gemini CLI."""
+    header("Google Gemini CLI")
+
+    if check_gemini_auth():
+        success("Already configured")
+        if not questionary.confirm(
+            "Reconfigure?", default=False, style=STYLE
+        ).ask():
+            return
+    else:
+        info("Gemini CLI needs a Google AI API key")
+        console.print("  Get one at: https://aistudio.google.com/apikey")
+        console.print()
+
+    if questionary.confirm("Configure Gemini CLI now?", default=True, style=STYLE).ask():
+        console.print()
+        api_key = questionary.password(
+            "Enter your Google AI API key:",
+            style=STYLE
+        ).ask()
+        if api_key:
+            zshrc = Path.home() / ".zshrc"
+            with open(zshrc, "a") as f:
+                f.write("\n# Gemini CLI\n")
+                f.write(f'export GOOGLE_API_KEY="{api_key}"\n')
+            os.environ["GOOGLE_API_KEY"] = api_key
+            success("Gemini API key saved to ~/.zshrc")
+            info("Restart your shell or run: source ~/.zshrc")
+
+
+def setup_codex_cli() -> None:
+    """Configure OpenAI Codex CLI."""
+    header("OpenAI Codex CLI")
+
+    if check_codex_auth():
+        success("Already configured")
+        if not questionary.confirm(
+            "Reconfigure?", default=False, style=STYLE
+        ).ask():
+            return
+    else:
+        info("Codex CLI needs an OpenAI API key")
+        console.print("  Get one at: https://platform.openai.com/api-keys")
+        console.print()
+
+    if questionary.confirm("Configure Codex CLI now?", default=True, style=STYLE).ask():
+        console.print()
+        api_key = questionary.password(
+            "Enter your OpenAI API key:",
+            style=STYLE
+        ).ask()
+        if api_key:
+            zshrc = Path.home() / ".zshrc"
+            with open(zshrc, "a") as f:
+                f.write("\n# OpenAI Codex CLI\n")
+                f.write(f'export OPENAI_API_KEY="{api_key}"\n')
+            os.environ["OPENAI_API_KEY"] = api_key
+            success("OpenAI API key saved to ~/.zshrc")
+            info("Restart your shell or run: source ~/.zshrc")
+
+
+# =============================================================================
+# Status Display
+# =============================================================================
+
+
+def show_status_table() -> None:
+    """Display status of all services as a Rich table."""
+    table = Table(title="Service Status", show_header=True, header_style="bold cyan")
+    table.add_column("Service", style="cyan")
+    table.add_column("Status")
+    table.add_column("Details", style="dim")
+
+    # Git
+    if check_git_config():
+        name = subprocess.run(
+            ["git", "config", "--global", "user.name"],
+            capture_output=True, text=True
+        ).stdout.strip()
+        table.add_row("Git", "[green]✓ configured[/green]", name)
+    else:
+        table.add_row("Git", "[yellow]! not configured[/yellow]", "name/email not set")
+
+    # GitHub CLI
+    if cmd_exists("gh"):
+        if check_gh_auth():
+            table.add_row("GitHub CLI", "[green]✓ authenticated[/green]", "")
+        else:
+            table.add_row("GitHub CLI", "[yellow]! not authenticated[/yellow]", "run: gh auth login")
+    else:
+        table.add_row("GitHub CLI", "[red]✗ not installed[/red]", "")
+
+    # Copilot
+    if cmd_exists("gh") and check_copilot_installed():
+        table.add_row("GitHub Copilot", "[green]✓ installed[/green]", "gh copilot")
+    else:
+        table.add_row("GitHub Copilot", "[yellow]! not installed[/yellow]", "needs gh auth first")
+
+    # Claude
+    if cmd_exists("claude"):
+        if check_claude_auth():
+            table.add_row("Claude Code", "[green]✓ authenticated[/green]", "")
+        else:
+            table.add_row("Claude Code", "[yellow]! not authenticated[/yellow]", "run: claude login")
+    else:
+        table.add_row("Claude Code", "[red]✗ not installed[/red]", "")
+
+    # Gemini
+    if cmd_exists("gemini"):
+        if check_gemini_auth():
+            table.add_row("Gemini CLI", "[green]✓ configured[/green]", "")
+        else:
+            table.add_row("Gemini CLI", "[yellow]! not configured[/yellow]", "needs API key")
+    else:
+        table.add_row("Gemini CLI", "[red]✗ not installed[/red]", "")
+
+    # Codex
+    if cmd_exists("codex"):
+        if check_codex_auth():
+            table.add_row("Codex CLI", "[green]✓ configured[/green]", "")
+        else:
+            table.add_row("Codex CLI", "[yellow]! not configured[/yellow]", "needs API key")
+    else:
+        table.add_row("Codex CLI", "[red]✗ not installed[/red]", "")
+
+    console.print(table)
+
+
+# =============================================================================
+# Commands
+# =============================================================================
+
+
+@app.command("status")
+def status() -> None:
+    """Show status of all services."""
+    header("Service Status")
+    show_status_table()
+
+
+@app.command("git")
+def git_cmd() -> None:
+    """Configure Git user.name and user.email."""
+    setup_git_config()
+
+
+@app.command("github")
+def github_cmd() -> None:
+    """Configure GitHub CLI authentication."""
+    setup_github_cli()
+
+
+@app.command("copilot")
+def copilot_cmd() -> None:
+    """Configure GitHub Copilot CLI."""
+    setup_copilot_cli()
+
+
+@app.command("claude")
+def claude_cmd() -> None:
+    """Configure Claude Code CLI."""
+    setup_claude_cli()
+
+
+@app.command("gemini")
+def gemini_cmd() -> None:
+    """Configure Gemini CLI."""
+    setup_gemini_cli()
+
+
+@app.command("codex")
+def codex_cmd() -> None:
+    """Configure Codex CLI."""
+    setup_codex_cli()
+
+
+@app.command("all")
+def all_cmd() -> None:
+    """Run all service configurations."""
+    setup_git_config()
+    setup_github_cli()
+    setup_copilot_cli()
+    setup_claude_cli()
+    setup_gemini_cli()
+    setup_codex_cli()
+
+    header("Setup Complete")
+    show_status_table()
+    console.print()
+    info("Tips:")
+    console.print("  - Run 'roughneck-setup status' anytime to check configuration")
+    console.print("  - Use 'claude' for AI coding assistance")
+    console.print("  - Use 'gh copilot suggest' for shell commands")
+
+
+def interactive_menu() -> None:
+    """Show interactive menu for service configuration."""
+    console.print()
+    console.print("[bold cyan]Roughneck Setup Wizard[/bold cyan]")
+    console.print("[dim]Configure your AI coding assistants and dev tools[/dim]")
+    console.print()
+
+    show_status_table()
+    console.print()
+
+    if not questionary.confirm(
+        "Start configuration wizard?", default=True, style=STYLE
+    ).ask():
+        console.print()
+        info("Run 'roughneck-setup' anytime to configure services")
+        return
+
+    setup_git_config()
+    setup_github_cli()
+    setup_copilot_cli()
+    setup_claude_cli()
+    setup_gemini_cli()
+    setup_codex_cli()
+
+    header("Setup Complete")
+    show_status_table()
+    console.print()
+    info("Tips:")
+    console.print("  - Run 'roughneck-setup status' anytime to check configuration")
+    console.print("  - Use 'claude' for AI coding assistance")
+    console.print("  - Use 'gh copilot suggest' for shell commands")
+    console.print()
+
+
+@app.callback(invoke_without_command=True)
+def main(ctx: typer.Context) -> None:
+    """Show interactive menu if no command provided."""
+    if ctx.invoked_subcommand is None:
+        interactive_menu()
+
+
+if __name__ == "__main__":
+    app()

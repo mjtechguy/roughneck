@@ -52,3 +52,11 @@
     owner: "{{ roughneck_user }}"
     group: "{{ roughneck_user }}"
     mode: "0600"
+
+- name: Create projects directory
+  file:
+    path: "/home/{{ roughneck_user }}/projects"
+    state: directory
+    owner: "{{ roughneck_user }}"
+    group: "{{ roughneck_user }}"
+    mode: "0755"
