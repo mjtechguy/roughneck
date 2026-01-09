@@ -378,12 +378,18 @@ def do_deploy(name: str) -> int:
 
     # Done
     ip = config.get_deployment_ip(name)
+    deploy_dir = config.get_deployment_dir(name)
+    summary_file = deploy_dir / "installation-summary.txt"
+
     cli.header("Deployment Complete")
     ssh_cmd = ssh.get_ssh_command(name)
     if ssh_cmd:
-        print(f"  SSH: {cli.cyan(ssh_cmd)}")
+        print(f"  SSH:         {cli.cyan(ssh_cmd)}")
     if ip:
-        print(f"  IP:  {ip}")
+        print(f"  Code-server: {cli.cyan(f'https://{ip}:10000')}  (self-signed cert)")
+    print()
+    if summary_file.exists():
+        print(f"  Full details: {summary_file}")
     print()
 
     return 0
