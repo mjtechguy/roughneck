@@ -63,12 +63,10 @@ module "aws" {
 
 # Ansible Inventory
 resource "local_file" "ansible_inventory" {
-  content = templatefile("${path.module}/../../../ansible/inventory.tpl", {
+  content = templatefile("${path.module}/../../inventory.tpl", {
     server_ip               = module.aws.server_ip
     private_key_path        = local.private_key_path
     ssh_user                = "ubuntu"
-    git_user_name           = var.git_user_name
-    git_user_email          = var.git_user_email
     enable_gastown          = var.enable_gastown
     enable_beads            = var.enable_beads
     enable_k9s              = var.enable_k9s

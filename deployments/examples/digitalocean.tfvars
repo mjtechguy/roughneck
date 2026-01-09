@@ -16,9 +16,7 @@ digitalocean_region = "nyc1"         # nyc1, nyc3, sfo3, ams3, lon1, fra1, etc.
 # Required Variables
 # =============================================================================
 
-project_name   = "myproject"
-git_user_name  = "Your Name"
-git_user_email = "you@example.com"
+project_name = "myproject"
 
 # =============================================================================
 # SSH Configuration (choose one)

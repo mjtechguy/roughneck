@@ -67,8 +67,22 @@ def get_terraform_dir() -> Path:
 
 
 def get_provider_dir(provider: str) -> Path:
-    """Get the terraform directory for a specific provider."""
+    """Get the shared terraform directory for a specific provider."""
     return get_terraform_dir() / "providers" / provider
+
+
+def get_deployment_provider_dir(name: str, provider: str) -> Path:
+    """Get terraform provider dir for a deployment (isolated or shared).
+
+    New deployments have terraform copied into their directory.
+    Old deployments fall back to the shared terraform directory.
+    """
+    deploy_dir = get_deployment_dir(name)
+    isolated = deploy_dir / "terraform" / "providers" / provider
+    if isolated.exists():
+        return isolated
+    # Fallback to shared (for old deployments)
+    return get_provider_dir(provider)
 
 
 def init(name: str) -> bool:
@@ -83,7 +97,7 @@ def init(name: str) -> bool:
 
     result = subprocess.run(
         [cmd, "init"],
-        cwd=get_provider_dir(provider),
+        cwd=get_deployment_provider_dir(name, provider),
     )
     return result.returncode == 0
 
@@ -109,7 +123,7 @@ def apply(name: str) -> bool:
             f"-var=deployment_dir={deploy_dir}",
             f"-state={state_path}",
         ],
-        cwd=get_provider_dir(provider),
+        cwd=get_deployment_provider_dir(name, provider),
         env=get_provider_env(name),
     )
     return result.returncode == 0
@@ -126,6 +140,7 @@ def destroy(name: str) -> bool:
     state_path = deploy_dir / "terraform.tfstate"
     tfvars = parse_tfvars(tfvars_path)
     provider = tfvars.get("provider_name", "hetzner")
+    tf_dir = get_deployment_provider_dir(name, provider)
 
     if not state_path.exists():
         return True  # Nothing to destroy
@@ -133,7 +148,7 @@ def destroy(name: str) -> bool:
     # Ensure modules are initialized (may have been cleared by other provider deploys)
     init_result = subprocess.run(
         [cmd, "init"],
-        cwd=get_provider_dir(provider),
+        cwd=tf_dir,
     )
     if init_result.returncode != 0:
         return False
@@ -147,7 +162,7 @@ def destroy(name: str) -> bool:
             f"-var=deployment_dir={deploy_dir}",
             f"-state={state_path}",
         ],
-        cwd=get_provider_dir(provider),
+        cwd=tf_dir,
         env=get_provider_env(name),
     )
     return result.returncode == 0
@@ -169,7 +184,7 @@ def output(name: str, key: str) -> Optional[str]:
 
     result = subprocess.run(
         [cmd, "output", "-raw", f"-state={state_path}", key],
-        cwd=get_provider_dir(provider),
+        cwd=get_deployment_provider_dir(name, provider),
         capture_output=True,
         text=True,
     )

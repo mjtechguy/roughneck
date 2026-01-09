@@ -24,16 +24,6 @@ variable "project_name" {
   type        = string
 }
 
-variable "git_user_name" {
-  description = "Git user.name for commits"
-  type        = string
-}
-
-variable "git_user_email" {
-  description = "Git user.email for commits"
-  type        = string
-}
-
 variable "ssh_public_key_path" {
   description = "Path to existing SSH public key. Leave empty to generate."
   type        = string

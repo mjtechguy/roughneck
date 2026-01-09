@@ -1,0 +1,146 @@
+---
+# =============================================================================
+# Roughneck Update Playbook
+# =============================================================================
+# Selectively update system packages, AI CLIs, and dev tools.
+# Run with --tags to specify what to update: apt, ai_clis, dev_tools
+
+- name: Update Roughneck Deployment
+  hosts: roughneck
+  become: true
+
+  vars:
+    roughneck_user: roughneck
+
+  tasks:
+    # =========================================================================
+    # APT Updates (tag: apt)
+    # =========================================================================
+
+    - name: Update apt cache
+      apt:
+        update_cache: true
+        cache_valid_time: 0
+      tags: [apt]
+
+    - name: Upgrade all packages
+      apt:
+        upgrade: safe
+      tags: [apt]
+
+    - name: Remove unused packages
+      apt:
+        autoremove: true
+      tags: [apt]
+
+    # =========================================================================
+    # AI CLI Updates (tag: ai_clis)
+    # =========================================================================
+
+    - name: Update Claude Code CLI
+      npm:
+        name: "@anthropic-ai/claude-code"
+        global: true
+        state: latest
+      tags: [ai_clis]
+
+    - name: Update OpenAI Codex CLI
+      npm:
+        name: "@openai/codex"
+        global: true
+        state: latest
+      tags: [ai_clis]
+
+    - name: Update Google Gemini CLI
+      npm:
+        name: "@google/gemini-cli"
+        global: true
+        state: latest
+      tags: [ai_clis]
+
+    - name: Get updated CLI versions
+      shell: |
+        echo "Claude: $(claude --version 2>/dev/null || echo 'not installed')"
+        echo "Codex: $(codex --version 2>/dev/null || echo 'not installed')"
+        echo "Gemini: $(gemini --version 2>/dev/null || echo 'not installed')"
+      register: cli_versions
+      changed_when: false
+      tags: [ai_clis]
+
+    - name: Display AI CLI versions
+      debug:
+        msg: "{{ cli_versions.stdout_lines }}"
+      tags: [ai_clis]
+
+    # =========================================================================
+    # Dev Tools Updates (tag: dev_tools)
+    # =========================================================================
+
+    - name: Get latest lazygit release version
+      uri:
+        url: https://api.github.com/repos/jesseduffield/lazygit/releases/latest
+        return_content: true
+      register: lazygit_release
+      tags: [dev_tools]
+
+    - name: Set lazygit version fact
+      set_fact:
+        lazygit_version: "{{ lazygit_release.json.tag_name | regex_replace('^v', '') }}"
+      tags: [dev_tools]
+
+    - name: Download latest lazygit
+      get_url:
+        url: "https://github.com/jesseduffield/lazygit/releases/download/v{{ lazygit_version }}/lazygit_{{ lazygit_version }}_Linux_x86_64.tar.gz"
+        dest: /tmp/lazygit.tar.gz
+        mode: "0644"
+        force: true
+      tags: [dev_tools]
+
+    - name: Extract and install lazygit
+      unarchive:
+        src: /tmp/lazygit.tar.gz
+        dest: /usr/local/bin
+        remote_src: true
+        extra_opts: [--wildcards, lazygit]
+      tags: [dev_tools]
+
+    - name: Get latest lazydocker release version
+      uri:
+        url: https://api.github.com/repos/jesseduffield/lazydocker/releases/latest
+        return_content: true
+      register: lazydocker_release
+      tags: [dev_tools]
+
+    - name: Set lazydocker version fact
+      set_fact:
+        lazydocker_version: "{{ lazydocker_release.json.tag_name | regex_replace('^v', '') }}"
+      tags: [dev_tools]
+
+    - name: Download latest lazydocker
+      get_url:
+        url: "https://github.com/jesseduffield/lazydocker/releases/download/v{{ lazydocker_version }}/lazydocker_{{ lazydocker_version }}_Linux_x86_64.tar.gz"
+        dest: /tmp/lazydocker.tar.gz
+        mode: "0644"
+        force: true
+      tags: [dev_tools]
+
+    - name: Extract and install lazydocker
+      unarchive:
+        src: /tmp/lazydocker.tar.gz
+        dest: /usr/local/bin
+        remote_src: true
+        extra_opts: [--wildcards, lazydocker]
+      tags: [dev_tools]
+
+    - name: Get updated dev tool versions
+      shell: |
+        echo "lazygit: $(lazygit --version 2>/dev/null | head -1 || echo 'not installed')"
+        echo "lazydocker: $(lazydocker --version 2>/dev/null | head -1 || echo 'not installed')"
+      register: devtools_versions
+      changed_when: false
+      tags: [dev_tools]
+
+    - name: Display dev tool versions
+      debug:
+        msg: "{{ devtools_versions.stdout_lines }}"
+      tags: [dev_tools]

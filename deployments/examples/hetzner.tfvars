@@ -17,9 +17,7 @@ hetzner_image       = "ubuntu-24.04"
 # Required Variables
 # =============================================================================
 
-project_name   = "myproject"
-git_user_name  = "Your Name"
-git_user_email = "you@example.com"
+project_name = "myproject"
 
 # =============================================================================
 # SSH Configuration (choose one)

@@ -80,11 +80,12 @@ Web IDE (code-server):
 {% endif %}
   Password: {{ codeserver_password }}
 
-AI Assistants:
-  Claude:   Run 'claude login' to authenticate
-  Codex:    Set OPENAI_API_KEY or run 'codex auth'
-  Gemini:   Set GOOGLE_API_KEY or run 'gemini auth'
-  Copilot:  Run 'gh auth login' then 'gh copilot'
+Configuration (run 'setup' to configure all):
+  Git:      Set user.name and user.email
+  Claude:   claude login
+  Codex:    Set OPENAI_API_KEY
+  Gemini:   Set GOOGLE_API_KEY
+  Copilot:  gh auth login
 {% if enable_gastown | default(false) | bool %}
 
 Gas Town:
@@ -97,12 +98,12 @@ NEXT STEPS
 --------------------------------------------------------------------------------
 
 1. SSH into the server as the 'roughneck' user
+2. Run 'setup' to configure Git and AI assistants
 {% if enable_letsencrypt | default(false) | bool %}
-2. Access code-server in your browser at https://{{ domain_name }}
+3. Access code-server in your browser at https://{{ domain_name }}
 {% else %}
-2. Access code-server in your browser at https://{{ inventory_hostname }}:10000
+3. Access code-server in your browser at https://{{ inventory_hostname }}:10000
 {% endif %}
-3. Authenticate your AI assistants (Claude, Codex, Gemini, Copilot)
 4. Use lazygit/lazydocker for visual Git/Docker management
 5. Configure mise for per-project tool versions
 {% if enable_gastown | default(false) | bool %}

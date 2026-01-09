@@ -36,6 +36,7 @@
     - codex-cli
     - gemini-cli
     - copilot-cli
+    - setup-wizard
     # Optional: Gas Town ecosystem (disabled by default)
     - role: beads
       when: enable_beads | default(false) | bool

@@ -3,6 +3,7 @@
 import json
 import os
 import re
+import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional, List, Dict, Any
@@ -17,8 +18,6 @@ class DeploymentConfig:
 
     # Required (common)
     project_name: str = ""
-    git_user_name: str = ""
-    git_user_email: str = ""
 
     # SSH
     ssh_public_key_path: str = ""  # Empty = generate new
@@ -69,6 +68,19 @@ def get_deployments_dir() -> Path:
 def get_deployment_dir(name: str) -> Path:
     """Get directory for a specific deployment."""
     return get_deployments_dir() / name
+
+
+def copy_terraform_to_deployment(name: str) -> None:
+    """Copy terraform files to deployment directory for isolation.
+
+    This ensures each deployment has its own copy of terraform configs,
+    so updates to roughneck won't break existing deployments.
+    """
+    src = get_root_dir() / "terraform"
+    dst = get_deployment_dir(name) / "terraform"
+
+    # Copy terraform directory (includes inventory.tpl)
+    shutil.copytree(src, dst)
 
 
 def list_deployments() -> List[str]:
@@ -190,9 +202,7 @@ def write_tfvars(name: str, config: DeploymentConfig) -> None:
     lines.extend([
         "",
         "# Common",
-        f'project_name   = "{config.project_name}"',
-        f'git_user_name  = "{config.git_user_name}"',
-        f'git_user_email = "{config.git_user_email}"',
+        f'project_name = "{config.project_name}"',
         "",
         "# SSH",
         f'ssh_public_key_path = "{config.ssh_public_key_path}"',
@@ -268,8 +278,6 @@ def read_tfvars(name: str) -> Optional[DeploymentConfig]:
 
 def delete_deployment(name: str) -> None:
     """Delete a deployment directory."""
-    import shutil
-
     deploy_dir = get_deployment_dir(name)
     if deploy_dir.exists():
         shutil.rmtree(deploy_dir)

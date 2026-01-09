@@ -11,7 +11,7 @@ import os
 # Add lib to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from lib import cli, config, terraform, ansible, ssh
+from lib import cli, config, terraform, ansible, ssh, credentials
 from lib.providers import hetzner, digitalocean, aws
 
 
@@ -31,9 +31,48 @@ def check_prerequisites() -> bool:
     return True
 
 
+def prompt_or_select_credentials(provider: str, token_field: str, extra_fields: dict = None) -> dict:
+    """Prompt for credentials or select from stored profiles.
+
+    Returns dict with credential values.
+    """
+    stored = credentials.get_credentials_for_provider(provider)
+    result = {}
+
+    if stored:
+        choices = [(c.name, c.name) for c in stored]
+        choices.append(("new", "[Enter new credentials]"))
+        selection = cli.prompt_choice(f"Select {provider} credentials:", choices)
+
+        if selection != "new":
+            cred = next(c for c in stored if c.name == selection)
+            cli.success(f"Using credentials: {selection}")
+            return cred.data
+        # Fall through to prompt for new credentials
+
+    # Prompt for new credentials
+    if provider == "hetzner":
+        result["token"] = cli.prompt_password("Hetzner API token")
+    elif provider == "aws":
+        result["access_key"] = cli.prompt_password("AWS Access Key")
+        result["secret_key"] = cli.prompt_password("AWS Secret Key")
+    elif provider == "digitalocean":
+        result["token"] = cli.prompt_password("DigitalOcean token")
+
+    # Offer to save (only if age is available)
+    if credentials.is_available():
+        if cli.prompt_bool("Save these credentials?", default=True):
+            name = cli.prompt("Profile name", default=f"{provider}-default")
+            credentials.add_credential(name, provider, result)
+            cli.success(f"Credentials saved: {name}")
+
+    return result
+
+
 def prompt_hetzner_config(cfg: config.DeploymentConfig) -> None:
     """Prompt for Hetzner-specific configuration using API."""
-    cfg.hetzner_token = cli.prompt_password("Hetzner API token")
+    creds = prompt_or_select_credentials("hetzner", "token")
+    cfg.hetzner_token = creds["token"]
 
     # Fetch locations from API
     print("  Fetching locations...")
@@ -69,8 +108,9 @@ def prompt_hetzner_config(cfg: config.DeploymentConfig) -> None:
 
 def prompt_aws_config(cfg: config.DeploymentConfig) -> None:
     """Prompt for AWS-specific configuration using API."""
-    cfg.aws_access_key = cli.prompt_password("AWS Access Key")
-    cfg.aws_secret_key = cli.prompt_password("AWS Secret Key")
+    creds = prompt_or_select_credentials("aws", "access_key")
+    cfg.aws_access_key = creds["access_key"]
+    cfg.aws_secret_key = creds["secret_key"]
 
     # Fetch regions from API
     print("  Fetching regions...")
@@ -112,7 +152,8 @@ def prompt_aws_config(cfg: config.DeploymentConfig) -> None:
 
 def prompt_digitalocean_config(cfg: config.DeploymentConfig) -> None:
     """Prompt for DigitalOcean-specific configuration using API."""
-    cfg.digitalocean_token = cli.prompt_password("DigitalOcean token")
+    creds = prompt_or_select_credentials("digitalocean", "token")
+    cfg.digitalocean_token = creds["token"]
 
     # Fetch regions from API
     print("  Fetching regions...")
@@ -181,8 +222,6 @@ def prompt_new_config(name: str) -> config.DeploymentConfig:
     # Common fields
     print()
     cfg.project_name = cli.prompt("Project name", default=name)
-    cfg.git_user_name = cli.prompt("Git user name")
-    cfg.git_user_email = cli.prompt_email("Git user email")
 
     # SSH key
     print()
@@ -304,6 +343,9 @@ def cmd_new(name: str = None) -> int:
     # Save config
     config.write_tfvars(name, cfg)
     cli.success(f"Configuration saved to deployments/{name}/terraform.tfvars")
+
+    # Copy terraform for isolation
+    config.copy_terraform_to_deployment(name)
 
     # Deploy
     return do_deploy(name)
@@ -482,9 +524,12 @@ def cmd_destroy(name: str = None) -> int:
         print(f"  Server IP: {ip}")
     print()
 
-    cli.warn("This will destroy all infrastructure!")
-    if not cli.confirm("Are you sure?", default=False):
-        print("Aborted.")
+    cli.warn("This will permanently destroy all infrastructure!")
+    print()
+    print(f"  Type '{name}' to confirm: ", end="")
+    confirmation = input().strip()
+    if confirmation != name:
+        cli.error("Name does not match. Aborted.")
         return 0
 
     cli.header("Destroying Infrastructure")
@@ -574,24 +619,151 @@ def cmd_edit(name: str = None) -> int:
     return 0
 
 
+def cmd_update(name: str = None) -> int:
+    """Update an existing deployment."""
+    if not check_prerequisites():
+        return 1
+
+    # Get deployment name
+    if not name:
+        deployments = config.list_deployments()
+        deployed = [d for d in deployments if config.get_deployment_ip(d)]
+        if not deployed:
+            cli.error("No deployed servers found")
+            print("  Create one with: ./roughneck new")
+            return 1
+        name = cli.select_from_list("Select deployment to update:", deployed)
+        if not name:
+            return 1
+
+    ip = config.get_deployment_ip(name)
+    if not ip:
+        cli.error(f"Deployment '{name}' has no IP (not deployed?)")
+        return 1
+
+    # Select what to update
+    cli.header("Update Options")
+    updates = []
+
+    if cli.prompt_bool("Update system packages (apt)?", default=True):
+        updates.append("apt")
+    if cli.prompt_bool("Update AI CLIs (Claude, Codex, Gemini)?", default=True):
+        updates.append("ai_clis")
+    if cli.prompt_bool("Update dev tools (lazygit, lazydocker)?", default=False):
+        updates.append("dev_tools")
+
+    if not updates:
+        cli.info("Nothing selected to update")
+        return 0
+
+    # Run update playbook with tags
+    cli.header(f"Updating: {name}")
+    if ansible.run_update_playbook(name, updates):
+        cli.success("Update complete")
+        return 0
+    else:
+        cli.error("Update failed")
+        return 1
+
+
+def cmd_credentials() -> int:
+    """Manage stored credentials."""
+    if not credentials.is_available():
+        cli.header("age Installation Required")
+        print("  Credential storage uses age encryption.")
+        print("  Install age to enable this feature:")
+        print()
+        print("  macOS:")
+        print("    brew install age")
+        print()
+        print("  Linux (Debian/Ubuntu):")
+        print("    sudo apt install age")
+        print()
+        print("  Linux (Fedora):")
+        print("    sudo dnf install age")
+        print()
+        print("  Or download from: https://github.com/FiloSottile/age/releases")
+        print()
+        return 1
+
+    while True:
+        creds = credentials.load_credentials()
+
+        cli.header("Stored Credentials")
+        if creds:
+            for c in creds:
+                print(f"  {c.name} ({c.provider})")
+        else:
+            print("  No credentials stored")
+        print()
+
+        action = cli.prompt_choice(
+            "Action:",
+            [
+                ("add", "Add new credentials"),
+                ("remove", "Remove credentials"),
+                ("back", "Back to main menu"),
+            ],
+        )
+
+        if action == "back":
+            return 0
+        elif action == "add":
+            provider = cli.prompt_choice(
+                "Provider:",
+                [
+                    ("hetzner", "Hetzner Cloud"),
+                    ("aws", "Amazon Web Services"),
+                    ("digitalocean", "DigitalOcean"),
+                ],
+            )
+            name = cli.prompt("Profile name")
+
+            if provider == "hetzner":
+                token = cli.prompt_password("Hetzner API token")
+                credentials.add_credential(name, provider, {"token": token})
+            elif provider == "aws":
+                access_key = cli.prompt_password("AWS Access Key")
+                secret_key = cli.prompt_password("AWS Secret Key")
+                credentials.add_credential(
+                    name, provider, {"access_key": access_key, "secret_key": secret_key}
+                )
+            elif provider == "digitalocean":
+                token = cli.prompt_password("DigitalOcean token")
+                credentials.add_credential(name, provider, {"token": token})
+
+            cli.success(f"Credentials saved: {name}")
+
+        elif action == "remove":
+            if not creds:
+                cli.warn("No credentials to remove")
+                continue
+            choices = [(c.name, f"{c.name} ({c.provider})") for c in creds]
+            name = cli.prompt_choice("Select credential to remove:", choices)
+            if cli.confirm(f"Remove '{name}'?", default=False):
+                credentials.remove_credential(name)
+                cli.success(f"Removed: {name}")
+
+
 def interactive_menu() -> int:
     """Show interactive menu."""
     action = cli.menu(
         "Roughneck",
         [
             ("new", "Create new deployment"),
-            ("deploy", "Deploy existing"),
+            ("update", "Update deployment"),
             ("edit", "Edit configuration"),
             ("destroy", "Destroy deployment"),
             ("list", "List deployments"),
             ("ssh", "SSH to deployment"),
+            ("credentials", "Manage credentials"),
         ],
     )
 
     if action == "new":
         return cmd_new()
-    elif action == "deploy":
-        return cmd_deploy()
+    elif action == "update":
+        return cmd_update()
     elif action == "edit":
         return cmd_edit()
     elif action == "destroy":
@@ -600,6 +772,8 @@ def interactive_menu() -> int:
         return cmd_list()
     elif action == "ssh":
         return cmd_ssh()
+    elif action == "credentials":
+        return cmd_credentials()
     return 0
 
 
@@ -616,6 +790,8 @@ def main() -> int:
 
     if cmd == "new":
         return cmd_new(name)
+    elif cmd == "update":
+        return cmd_update(name)
     elif cmd == "deploy":
         return cmd_deploy(name)
     elif cmd == "edit":
@@ -626,16 +802,20 @@ def main() -> int:
         return cmd_list()
     elif cmd == "ssh":
         return cmd_ssh(name)
+    elif cmd == "credentials":
+        return cmd_credentials()
     elif cmd in ("-h", "--help", "help"):
         print("Usage: roughneck [command] [name]")
         print()
         print("Commands:")
         print("  new [name]      Create new deployment")
+        print("  update [name]   Update deployment (apt, AI CLIs, dev tools)")
         print("  deploy [name]   Deploy existing (with recovery)")
         print("  edit [name]     Edit deployment configuration")
         print("  destroy [name]  Destroy deployment")
         print("  list            List deployments")
         print("  ssh [name]      SSH to deployment")
+        print("  credentials     Manage stored credentials")
         print()
         print("Supported providers: hetzner, aws, digitalocean")
         print()

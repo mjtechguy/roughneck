@@ -123,16 +123,16 @@ locals {
 }
 
 resource "local_file" "ansible_inventory" {
-  content = templatefile("${path.root}/../ansible/inventory.tpl", {
+  content = templatefile("${path.root}/inventory.tpl", {
     server_ip               = local.server_ip
     private_key_path        = local.private_key_path
     ssh_user                = local.ssh_user
-    git_user_name           = var.git_user_name
-    git_user_email          = var.git_user_email
-    roughneck_repo          = var.roughneck_repo
-    roughneck_branch        = var.roughneck_branch
-    anthropic_api_key       = var.anthropic_api_key
+    enable_gastown          = var.enable_gastown
+    enable_beads            = var.enable_beads
+    enable_k9s              = var.enable_k9s
     enable_systemd_services = var.enable_systemd_services
+    enable_letsencrypt      = var.enable_letsencrypt
+    domain_name             = var.domain_name
   })
   filename = "${var.deployment_dir}/inventory.ini"
 }

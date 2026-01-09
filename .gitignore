@@ -8,6 +8,9 @@
 deployments/*/
 !deployments/examples/
 
+# Encrypted credentials
+.credentials.age
+
 # Python
 __pycache__/
 *.pyc

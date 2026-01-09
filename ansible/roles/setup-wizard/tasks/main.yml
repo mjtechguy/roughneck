@@ -1,0 +1,19 @@
+---
+# =============================================================================
+# Setup Wizard Role
+# =============================================================================
+# Installs the interactive setup wizard for configuring AI coding assistants
+
+- name: Copy setup wizard script
+  copy:
+    src: setup-wizard.sh
+    dest: /usr/local/bin/setup
+    mode: "0755"
+    owner: root
+    group: root
+
+- name: Display setup wizard info
+  debug:
+    msg:
+      - "Setup wizard installed"
+      - "Run 'setup' after logging in to configure AI assistants"

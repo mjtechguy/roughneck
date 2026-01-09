@@ -63,12 +63,10 @@ module "hetzner" {
 
 # Ansible Inventory
 resource "local_file" "ansible_inventory" {
-  content = templatefile("${path.module}/../../../ansible/inventory.tpl", {
+  content = templatefile("${path.module}/../../inventory.tpl", {
     server_ip               = module.hetzner.server_ip
     private_key_path        = local.private_key_path
     ssh_user                = "root"
-    git_user_name           = var.git_user_name
-    git_user_email          = var.git_user_email
     enable_gastown          = var.enable_gastown
     enable_beads            = var.enable_beads
     enable_k9s              = var.enable_k9s

@@ -17,9 +17,7 @@ aws_region        = "us-east-1"    # us-east-1, us-west-2, eu-west-1, etc.
 # Required Variables
 # =============================================================================
 
-project_name   = "myproject"
-git_user_name  = "Your Name"
-git_user_email = "you@example.com"
+project_name = "myproject"
 
 # =============================================================================
 # SSH Configuration (choose one)
