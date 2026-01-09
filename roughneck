@@ -370,6 +370,23 @@ def do_deploy(name: str) -> int:
             # Success - move to next stage
             if stage == "apply":
                 cli.success("Infrastructure provisioned")
+
+                # DNS pause for Let's Encrypt
+                ip = config.get_deployment_ip(name)
+                cfg = config.read_tfvars(name)
+                if cfg and cfg.enable_letsencrypt and cfg.domain_name and ip:
+                    print()
+                    cli.header("DNS Configuration Required")
+                    print(f"  Server IP: {cli.cyan(ip)}")
+                    print(f"  Domain:    {cli.cyan(cfg.domain_name)}")
+                    print()
+                    print("  Before continuing, configure your DNS:")
+                    print(f"    {cfg.domain_name}  →  A record  →  {ip}")
+                    print()
+                    if not cli.confirm("DNS configured and propagated?"):
+                        cli.info("Deployment paused. Run './roughneck deploy' to resume.")
+                        return 1
+
             elif stage == "ansible":
                 cli.success("Server configured")
             stage_idx += 1
