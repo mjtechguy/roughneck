@@ -9,6 +9,7 @@ from .commands import (
     edit,
     list_deployments,
     new,
+    provision,
     ssh_cmd,
     update,
 )
@@ -24,6 +25,7 @@ app = typer.Typer(
 # Register commands
 app.command("new", help="Create a new deployment")(new)
 app.command("deploy", help="Deploy/resume an existing deployment")(deploy)
+app.command("provision", help="Re-run ansible provisioning on a deployment")(provision)
 app.command("update", help="Update packages and tools on a deployment")(update)
 app.command("destroy", help="Destroy a deployment")(destroy)
 app.command("edit", help="Edit a deployment's configuration")(edit)

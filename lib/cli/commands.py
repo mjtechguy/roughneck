@@ -588,6 +588,44 @@ def edit(
             raise typer.Exit(result)
 
 
+def provision(
+    name: Annotated[Optional[str], typer.Argument(help="Deployment name")] = None,
+) -> None:
+    """Re-run ansible provisioning on a deployment.
+
+    Use this to apply configuration changes (tmux, tools, etc.)
+    without re-running terraform.
+    """
+    if not check_prerequisites():
+        raise typer.Exit(1)
+
+    # Get deployment name
+    if not name:
+        deployments = config.list_deployments()
+        deployed = [d for d in deployments if config.get_deployment_ip(d)]
+        if not deployed:
+            output.error("No deployed servers found")
+            output.info("Create one with: ./roughneck new")
+            raise typer.Exit(1)
+        name = prompts.select_deployment(deployed, "provision")
+        if not name:
+            raise typer.Abort()
+
+    ip = config.get_deployment_ip(name)
+    if not ip:
+        output.error(f"Deployment '{name}' has no IP (not deployed?)")
+        raise typer.Exit(1)
+
+    output.header(f"Provisioning: {name}")
+    output.info(f"Re-running ansible on {ip}...")
+
+    if ansible.run_playbook(name):
+        output.success("Provisioning complete")
+    else:
+        output.error("Provisioning failed")
+        raise typer.Exit(1)
+
+
 def update(
     name: Annotated[Optional[str], typer.Argument(help="Deployment name")] = None,
 ) -> None:

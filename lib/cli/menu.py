@@ -19,7 +19,8 @@ def interactive_menu() -> None:
         "What would you like to do?",
         choices=[
             Choice("Create new deployment", value="new"),
-            Choice("Update deployment", value="update"),
+            Choice("Re-provision deployment", value="provision"),
+            Choice("Update packages/tools", value="update"),
             Choice("Edit configuration", value="edit"),
             Choice("Destroy deployment", value="destroy"),
             Separator(),
@@ -42,12 +43,13 @@ def interactive_menu() -> None:
     # Map action to command function
     command_map = {
         "new": commands.new,
+        "provision": commands.provision,
         "update": commands.update,
         "edit": commands.edit,
         "destroy": commands.destroy,
         "list": commands.list_deployments,
-        "ssh": commands.ssh,
-        "credentials": commands.credentials,
+        "ssh": commands.ssh_cmd,
+        "credentials": commands.credentials_cmd,
     }
 
     command_fn = command_map.get(action)
