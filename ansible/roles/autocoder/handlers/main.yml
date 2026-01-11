@@ -1,0 +1,9 @@
+---
+- name: Reload systemd
+  systemd:
+    daemon_reload: true
+
+- name: Restart autocoder
+  systemd:
+    name: autocoder
+    state: restarted

@@ -1,0 +1,31 @@
+#!/bin/bash
+# AutoCoder startup script
+# Runs the FastAPI backend and Vite dev server
+
+set -e
+
+cd /home/{{ roughneck_user }}/autocoder
+
+# Activate virtual environment
+source venv/bin/activate
+
+# Backend port (UI proxies API requests here)
+export VITE_API_PORT=51731
+
+# Start the FastAPI backend in background
+python -m uvicorn server.main:app --host 0.0.0.0 --port 51731 &
+BACKEND_PID=$!
+
+# Wait for backend to be ready
+sleep 3
+
+# Start the Vite dev server for UI
+cd ui
+npm run dev -- --host 0.0.0.0 --port 51730 &
+UI_PID=$!
+
+# Handle shutdown
+trap "kill $BACKEND_PID $UI_PID 2>/dev/null" EXIT
+
+# Wait for either process to exit
+wait

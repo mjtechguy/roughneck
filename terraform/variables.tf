@@ -180,3 +180,62 @@ variable "domain_name" {
   type        = string
   default     = ""
 }
+
+variable "tls_mode" {
+  description = "TLS challenge mode: http01 (multi-subdomain) or dns01 (wildcard)"
+  type        = string
+  default     = "http01"
+  validation {
+    condition     = contains(["http01", "dns01"], var.tls_mode)
+    error_message = "TLS mode must be http01 or dns01."
+  }
+}
+
+variable "dns_provider" {
+  description = "DNS provider for auto-provisioning records: cloudflare, route53, digitalocean, hetzner"
+  type        = string
+  default     = ""
+  validation {
+    condition     = var.dns_provider == "" || contains(["cloudflare", "route53", "digitalocean", "hetzner"], var.dns_provider)
+    error_message = "DNS provider must be cloudflare, route53, digitalocean, or hetzner."
+  }
+}
+
+# =============================================================================
+# DNS Provider Credentials
+# =============================================================================
+
+variable "cloudflare_api_token" {
+  description = "Cloudflare API token for DNS record provisioning and DNS-01 challenge"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "route53_access_key" {
+  description = "AWS access key for Route 53 DNS record provisioning"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "route53_secret_key" {
+  description = "AWS secret key for Route 53 DNS record provisioning"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "digitalocean_dns_token" {
+  description = "DigitalOcean API token for DNS record provisioning"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "hetzner_dns_token" {
+  description = "Hetzner DNS API token for DNS record provisioning"
+  type        = string
+  default     = ""
+  sensitive   = true
+}

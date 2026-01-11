@@ -1,0 +1,294 @@
+---
+# =============================================================================
+# Roughneck Deployment Validation Playbook
+# =============================================================================
+# Validates that all services are running and accessible.
+# Run with: ansible-playbook -i inventory.ini validate.yml
+#
+# Exit codes:
+#   0 = All validations passed
+#   1 = One or more validations failed
+
+- name: Validate Roughneck Deployment
+  hosts: roughneck
+  become: true
+  gather_facts: false
+
+  vars:
+    roughneck_user: roughneck
+    validation_results: []
+    validation_failed: false
+
+  tasks:
+    # ==========================================================================
+    # Setup - Gather required information
+    # ==========================================================================
+
+    - name: Read code-server password
+      slurp:
+        src: /home/{{ roughneck_user }}/.config/code-server/password.txt
+      register: codeserver_password_file
+      failed_when: false
+
+    - name: Set code-server password
+      set_fact:
+        codeserver_password: "{{ codeserver_password_file.content | b64decode | trim }}"
+      when: codeserver_password_file.content is defined
+
+    - name: Get server IP
+      set_fact:
+        server_ip: "{{ ansible_host }}"
+
+    # ==========================================================================
+    # Systemd Service Checks
+    # ==========================================================================
+
+    - name: Check Docker service
+      command: systemctl is-active docker
+      register: docker_status
+      changed_when: false
+      failed_when: false
+
+    - name: Record Docker status
+      set_fact:
+        validation_results: "{{ validation_results + [{'name': 'Docker service', 'status': docker_status.rc == 0, 'detail': docker_status.stdout | default('unknown')}] }}"
+
+    - name: Check code-server service
+      command: systemctl is-active code-server
+      register: codeserver_status
+      changed_when: false
+      failed_when: false
+
+    - name: Record code-server service status
+      set_fact:
+        # Accept 'active' or 'activating' as valid states
+        validation_results: "{{ validation_results + [{'name': 'code-server service', 'status': codeserver_status.stdout in ['active', 'activating'], 'detail': codeserver_status.stdout | default('unknown')}] }}"
+
+    - name: Check Caddy service
+      command: systemctl is-active caddy
+      register: caddy_status
+      changed_when: false
+      failed_when: false
+
+    - name: Record Caddy service status
+      set_fact:
+        validation_results: "{{ validation_results + [{'name': 'Caddy service', 'status': caddy_status.rc == 0, 'detail': caddy_status.stdout | default('unknown')}] }}"
+
+    - name: Check AutoCoder service
+      command: systemctl is-active autocoder
+      register: autocoder_status
+      changed_when: false
+      failed_when: false
+      when: enable_autocoder | default(false) | bool
+
+    - name: Record AutoCoder service status
+      set_fact:
+        # Accept 'active' or 'activating' as valid states
+        validation_results: "{{ validation_results + [{'name': 'AutoCoder service', 'status': autocoder_status.stdout in ['active', 'activating'], 'detail': autocoder_status.stdout | default('unknown')}] }}"
+      when: enable_autocoder | default(false) | bool
+
+    # ==========================================================================
+    # Port Availability Checks
+    # ==========================================================================
+
+    - name: Check code-server port (10080)
+      wait_for:
+        port: 10080
+        timeout: 5
+      register: codeserver_port
+      failed_when: false
+
+    - name: Record code-server port status
+      set_fact:
+        validation_results: "{{ validation_results + [{'name': 'code-server port 10080', 'status': codeserver_port.failed is not defined or not codeserver_port.failed, 'detail': 'listening' if (codeserver_port.failed is not defined or not codeserver_port.failed) else 'not listening'}] }}"
+
+    - name: Check Caddy port (10000 for self-signed)
+      wait_for:
+        port: 10000
+        timeout: 5
+      register: caddy_port_10000
+      failed_when: false
+      when: not (enable_letsencrypt | default(false) | bool)
+
+    - name: Record Caddy port 10000 status
+      set_fact:
+        validation_results: "{{ validation_results + [{'name': 'Caddy port 10000', 'status': caddy_port_10000.failed is not defined or not caddy_port_10000.failed, 'detail': 'listening' if (caddy_port_10000.failed is not defined or not caddy_port_10000.failed) else 'not listening'}] }}"
+      when: not (enable_letsencrypt | default(false) | bool)
+
+    - name: Check Caddy HTTPS port (443 for Let's Encrypt)
+      wait_for:
+        port: 443
+        timeout: 5
+      register: caddy_port_443
+      failed_when: false
+      when: enable_letsencrypt | default(false) | bool
+
+    - name: Record Caddy port 443 status
+      set_fact:
+        validation_results: "{{ validation_results + [{'name': 'Caddy port 443', 'status': caddy_port_443.failed is not defined or not caddy_port_443.failed, 'detail': 'listening' if (caddy_port_443.failed is not defined or not caddy_port_443.failed) else 'not listening'}] }}"
+      when: enable_letsencrypt | default(false) | bool
+
+    - name: Check AutoCoder port (51730)
+      wait_for:
+        port: 51730
+        timeout: 5
+      register: autocoder_port
+      failed_when: false
+      when: enable_autocoder | default(false) | bool
+
+    - name: Record AutoCoder port status
+      set_fact:
+        validation_results: "{{ validation_results + [{'name': 'AutoCoder port 51730', 'status': autocoder_port.failed is not defined or not autocoder_port.failed, 'detail': 'listening' if (autocoder_port.failed is not defined or not autocoder_port.failed) else 'not listening'}] }}"
+      when: enable_autocoder | default(false) | bool
+
+    # ==========================================================================
+    # HTTP Health Checks
+    # ==========================================================================
+
+    - name: Check code-server HTTP response
+      uri:
+        url: "http://localhost:10080/"
+        method: GET
+        status_code: [200, 302, 401]
+        timeout: 10
+      register: codeserver_http
+      failed_when: false
+
+    - name: Record code-server HTTP status
+      set_fact:
+        validation_results: "{{ validation_results + [{'name': 'code-server HTTP', 'status': codeserver_http.status is defined and codeserver_http.status in [200, 302, 401], 'detail': 'HTTP ' + (codeserver_http.status | string) if codeserver_http.status is defined else 'unreachable'}] }}"
+
+    - name: Check Caddy proxy to code-server (self-signed)
+      uri:
+        url: "https://localhost:10000/"
+        method: GET
+        status_code: [200, 302, 401]
+        timeout: 10
+        validate_certs: false
+      register: caddy_http_selfsigned
+      failed_when: false
+      when: not (enable_letsencrypt | default(false) | bool)
+
+    - name: Record Caddy HTTP status (self-signed)
+      set_fact:
+        validation_results: "{{ validation_results + [{'name': 'Caddy HTTPS proxy', 'status': caddy_http_selfsigned.status is defined and caddy_http_selfsigned.status in [200, 302, 401], 'detail': 'HTTP ' + (caddy_http_selfsigned.status | string) if caddy_http_selfsigned.status is defined else 'unreachable'}] }}"
+      when: not (enable_letsencrypt | default(false) | bool)
+
+    - name: Check Caddy with Let's Encrypt
+      uri:
+        url: "https://code.{{ domain_name }}/"
+        method: GET
+        status_code: [200, 302, 401]
+        timeout: 10
+        validate_certs: true
+      register: caddy_http_letsencrypt
+      failed_when: false
+      when: enable_letsencrypt | default(false) | bool and domain_name is defined
+
+    - name: Record Caddy HTTP status (Let's Encrypt)
+      set_fact:
+        validation_results: "{{ validation_results + [{'name': 'Caddy HTTPS (Let\\'s Encrypt)', 'status': caddy_http_letsencrypt.status is defined and caddy_http_letsencrypt.status in [200, 302, 401], 'detail': 'HTTP ' + (caddy_http_letsencrypt.status | string) if caddy_http_letsencrypt.status is defined else 'unreachable'}] }}"
+      when: enable_letsencrypt | default(false) | bool and domain_name is defined
+
+    - name: Check AutoCoder HTTP response
+      uri:
+        url: "http://localhost:51730/"
+        method: GET
+        status_code: [200, 302, 401, 404]
+        timeout: 10
+      register: autocoder_http
+      failed_when: false
+      when: enable_autocoder | default(false) | bool
+
+    - name: Record AutoCoder HTTP status
+      set_fact:
+        validation_results: "{{ validation_results + [{'name': 'AutoCoder HTTP', 'status': autocoder_http.status is defined and autocoder_http.status in [200, 302, 401, 404], 'detail': 'HTTP ' + (autocoder_http.status | string) if autocoder_http.status is defined else 'unreachable'}] }}"
+      when: enable_autocoder | default(false) | bool
+
+    # ==========================================================================
+    # Docker Functionality Check
+    # ==========================================================================
+
+    - name: Verify Docker can run containers
+      command: docker run --rm hello-world
+      register: docker_hello
+      changed_when: false
+      failed_when: false
+      timeout: 30
+
+    - name: Record Docker functionality
+      set_fact:
+        validation_results: "{{ validation_results + [{'name': 'Docker run', 'status': docker_hello.rc == 0, 'detail': 'container ran successfully' if docker_hello.rc == 0 else 'failed to run container'}] }}"
+
+    # ==========================================================================
+    # CLI Tools Validation
+    # ==========================================================================
+
+    - name: Check Claude CLI
+      command: claude --version
+      register: claude_check
+      changed_when: false
+      failed_when: false
+
+    - name: Record Claude CLI status
+      set_fact:
+        validation_results: "{{ validation_results + [{'name': 'Claude CLI', 'status': claude_check.rc == 0, 'detail': claude_check.stdout_lines[0] | default('not installed') if claude_check.rc == 0 else 'not available'}] }}"
+
+    - name: Check Codex CLI
+      command: codex --version
+      register: codex_check
+      changed_when: false
+      failed_when: false
+
+    - name: Record Codex CLI status
+      set_fact:
+        validation_results: "{{ validation_results + [{'name': 'Codex CLI', 'status': codex_check.rc == 0, 'detail': codex_check.stdout_lines[0] | default('not installed') if codex_check.rc == 0 else 'not available'}] }}"
+
+    - name: Check Gemini CLI
+      command: gemini --version
+      register: gemini_check
+      changed_when: false
+      failed_when: false
+
+    - name: Record Gemini CLI status
+      set_fact:
+        validation_results: "{{ validation_results + [{'name': 'Gemini CLI', 'status': gemini_check.rc == 0, 'detail': gemini_check.stdout_lines[0] | default('not installed') if gemini_check.rc == 0 else 'not available'}] }}"
+
+    # ==========================================================================
+    # Results Summary
+    # ==========================================================================
+
+    - name: Count failures
+      set_fact:
+        failed_checks: "{{ validation_results | selectattr('status', 'equalto', false) | list }}"
+        passed_checks: "{{ validation_results | selectattr('status', 'equalto', true) | list }}"
+
+    - name: Display validation results
+      debug:
+        msg: |
+
+          ============================================================
+          VALIDATION RESULTS
+          ============================================================
+          {% for result in validation_results %}
+          {{ '✓' if result.status else '✗' }} {{ result.name }}: {{ result.detail }}
+          {% endfor %}
+
+          ------------------------------------------------------------
+          SUMMARY: {{ passed_checks | length }}/{{ validation_results | length }} checks passed
+          {% if failed_checks | length > 0 %}
+          FAILED CHECKS:
+          {% for check in failed_checks %}
+            - {{ check.name }}: {{ check.detail }}
+          {% endfor %}
+          {% endif %}
+          ============================================================
+
+    - name: Set validation status
+      set_fact:
+        validation_failed: "{{ failed_checks | length > 0 }}"
+
+    - name: Fail if any checks failed
+      fail:
+        msg: "Validation failed: {{ failed_checks | length }} check(s) did not pass"
+      when: validation_failed | bool

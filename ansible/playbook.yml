@@ -6,10 +6,11 @@
   vars:
     roughneck_user: roughneck
     go_version: "1.23.4"
-    # Feature flags for optional components (Gas Town ecosystem)
+    # Feature flags for optional components
     enable_gastown: false
     enable_beads: false
     enable_k9s: false
+    enable_autocoder: false
 
   roles:
     # Core system setup
@@ -23,19 +24,21 @@
     - docker
     # Development environment
     - code-server
-    - role: caddy
-      when: enable_letsencrypt | default(false) | bool
+    - caddy
     - direnv
     - mise
     - lazygit
     - lazydocker
     - role: k9s
       when: enable_k9s | default(false) | bool
-    # AI coding assistants
+    # AI coding assistants (installs Node.js)
     - claude
     - codex-cli
     - gemini-cli
     - copilot-cli
+    # AutoCoder (requires Node.js from claude role)
+    - role: autocoder
+      when: enable_autocoder | default(false) | bool
     - setup-wizard
     # Optional: Gas Town ecosystem (disabled by default)
     - role: beads
@@ -198,7 +201,13 @@
       register: caddy_service_status
       changed_when: false
       failed_when: false
-      when: enable_letsencrypt | default(false) | bool
+
+    - name: Check AutoCoder service status
+      command: systemctl is-active autocoder
+      register: autocoder_service_status
+      changed_when: false
+      failed_when: false
+      when: enable_autocoder | default(false) | bool
 
     - name: Read code-server password from server
       slurp:
@@ -237,7 +246,7 @@
 
     - name: Verify code-server is accessible
       wait_for:
-        port: 10000
+        port: 10080
         timeout: 5
       failed_when: false
 

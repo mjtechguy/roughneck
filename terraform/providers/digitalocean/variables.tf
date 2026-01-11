@@ -75,6 +75,12 @@ variable "enable_k9s" {
   default     = false
 }
 
+variable "enable_autocoder" {
+  description = "Enable AutoCoder autonomous coding agent"
+  type        = bool
+  default     = false
+}
+
 variable "enable_systemd_services" {
   description = "Enable systemd services"
   type        = bool
@@ -92,4 +98,52 @@ variable "domain_name" {
   description = "Domain name for Let's Encrypt certificate"
   type        = string
   default     = ""
+}
+
+variable "tls_mode" {
+  description = "TLS challenge mode: http01 or dns01"
+  type        = string
+  default     = "http01"
+}
+
+variable "dns_provider" {
+  description = "DNS provider for auto-provisioning: cloudflare, route53, digitalocean, hetzner"
+  type        = string
+  default     = ""
+}
+
+# DNS Provider Credentials
+variable "cloudflare_api_token" {
+  description = "Cloudflare API token"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "route53_access_key" {
+  description = "AWS access key for Route 53"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "route53_secret_key" {
+  description = "AWS secret key for Route 53"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "digitalocean_dns_token" {
+  description = "DigitalOcean API token for DNS"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "hetzner_dns_token" {
+  description = "Hetzner DNS API token"
+  type        = string
+  default     = ""
+  sensitive   = true
 }

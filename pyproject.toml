@@ -9,3 +9,8 @@ dependencies = [
 
 [project.scripts]
 roughneck = "roughneck:main"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.14.11",
+]

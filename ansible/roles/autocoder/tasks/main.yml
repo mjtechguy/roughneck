@@ -1,0 +1,96 @@
+---
+# =============================================================================
+# AutoCoder Installation Role
+# =============================================================================
+# Installs AutoCoder - autonomous coding agent powered by Claude Agent SDK
+# Runs on port 5173 internally, proxied via Caddy on port 10001 with basic auth
+
+- name: Install Python venv package
+  apt:
+    name: python3-venv
+    state: present
+
+- name: Clone AutoCoder repository
+  become_user: "{{ roughneck_user }}"
+  git:
+    repo: https://github.com/leonvanzyl/autocoder.git
+    dest: /home/{{ roughneck_user }}/autocoder
+    version: master
+    force: true
+  register: autocoder_clone
+
+# NOTE: This sed-based patching is fragile and may break if upstream AutoCoder changes.
+# Consider contributing a configuration option or environment variable upstream to allow
+# disabling the localhost restriction instead of patching the source code directly.
+# See: https://github.com/leonvanzyl/autocoder
+- name: Disable localhost-only restriction for proxy access
+  shell: |
+    sed -i 's/if client_host not in.*:/if False:  # Disabled for proxy access/' /home/{{ roughneck_user }}/autocoder/server/main.py
+  args:
+    chdir: /home/{{ roughneck_user }}/autocoder
+  register: localhost_patch
+  changed_when: localhost_patch.rc == 0
+  failed_when: false  # Don't fail if pattern not found (upstream may have changed)
+  notify: Restart autocoder
+
+- name: Create Python virtual environment
+  become_user: "{{ roughneck_user }}"
+  command: python3 -m venv venv
+  args:
+    chdir: /home/{{ roughneck_user }}/autocoder
+    creates: /home/{{ roughneck_user }}/autocoder/venv
+
+- name: Install Python dependencies
+  become_user: "{{ roughneck_user }}"
+  pip:
+    requirements: /home/{{ roughneck_user }}/autocoder/requirements.txt
+    virtualenv: /home/{{ roughneck_user }}/autocoder/venv
+  when: autocoder_clone.changed or not ansible_check_mode
+
+- name: Install npm dependencies for UI
+  become_user: "{{ roughneck_user }}"
+  npm:
+    path: /home/{{ roughneck_user }}/autocoder/ui
+    state: present
+
+- name: Deploy autocoder startup script
+  template:
+    src: start-autocoder.sh.j2
+    dest: /home/{{ roughneck_user }}/autocoder/start-autocoder.sh
+    owner: "{{ roughneck_user }}"
+    group: "{{ roughneck_user }}"
+    mode: '0755'
+
+- name: Deploy autocoder systemd service
+  template:
+    src: autocoder.service.j2
+    dest: /etc/systemd/system/autocoder.service
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Reload systemd
+
+- name: Enable and start autocoder service
+  systemd:
+    name: autocoder
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Wait for autocoder to start
+  wait_for:
+    port: 51730
+    delay: 5
+    timeout: 60
+
+- name: Display autocoder info
+  debug:
+    msg:
+      - "=========================================="
+      - "AutoCoder Installation Complete"
+      - "=========================================="
+      - "Internal port: 51730"
+      - "External port: 10001 (via Caddy with basic auth)"
+      - "Username: roughneck"
+      - "Password: (same as code-server)"
+      - "=========================================="

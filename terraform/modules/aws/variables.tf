@@ -1,3 +1,11 @@
+terraform {
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+    }
+  }
+}
+
 # =============================================================================
 # Required Variables
 # =============================================================================
@@ -52,4 +60,10 @@ variable "enable_letsencrypt" {
   description = "Enable Let's Encrypt TLS (requires port 80 open for ACME)"
   type        = bool
   default     = false
+}
+
+variable "tls_mode" {
+  description = "TLS challenge mode: http01 (requires port 80) or dns01 (no port 80 needed)"
+  type        = string
+  default     = "http01"
 }

@@ -50,20 +50,26 @@ Shows a menu:
 
 What would you like to do?
 
-  1. Create new deployment
-  2. Update deployment
-  3. Edit configuration
-  4. Destroy deployment
-  5. List deployments
-  6. SSH to deployment
-  7. Manage credentials
+  Create new deployment
+  Re-provision deployment
+  Update packages/tools
+  Validate deployment
+  Edit configuration
+  Destroy deployment
+  ─────────────────────
+  List deployments
+  SSH to deployment
+  ─────────────────────
+  Manage credentials
 ```
 
 ### Command Line
 
 ```bash
 ./roughneck new [name]         # Create new deployment
+./roughneck provision [name]   # Re-run ansible provisioning
 ./roughneck update [name]      # Update packages/tools on deployment
+./roughneck validate [name]    # Validate deployment health
 ./roughneck edit [name]        # Edit deployment config in $EDITOR
 ./roughneck destroy [name]     # Destroy deployment (with confirmation)
 ./roughneck list               # List all deployments
@@ -110,6 +116,23 @@ Select what to update:
 - System packages (apt upgrade)
 - AI CLIs (Claude, Codex, Gemini)
 - Dev tools (lazygit, lazydocker)
+
+### Validate Deployments
+
+Verify that all services are running and healthy:
+
+```bash
+./roughneck validate myserver
+```
+
+Validation checks:
+- **Systemd services**: Docker, code-server, Caddy, AutoCoder
+- **Port availability**: All expected ports are listening
+- **HTTP endpoints**: Services respond to HTTP requests
+- **Docker**: Can run containers
+- **CLI tools**: Claude, Codex, Gemini CLIs are installed
+
+Validation runs automatically after deployment completes, or can be run on-demand.
 
 ### Setup Wizard
 
@@ -285,6 +308,7 @@ roughneck/
 └── ansible/
     ├── playbook.yml            # Main playbook
     ├── update.yml              # Update playbook
+    ├── validate.yml            # Validation playbook
     └── roles/
         ├── common/             # Base packages, user setup
         ├── zsh/                # Zsh + oh-my-zsh

@@ -1,12 +1,11 @@
 """Rich-based output helpers for the CLI."""
 
 import json
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
-from rich.text import Text
 
 console = Console()
 
@@ -99,20 +98,26 @@ def print_config_summary(name: str, config: Dict[str, Any]) -> None:
     ]
 
     if provider == "hetzner":
-        lines.extend([
-            f"[bold]Location:[/bold] {config.get('hetzner_location', '-')}",
-            f"[bold]Server:[/bold] {config.get('hetzner_server_type', '-')}",
-        ])
+        lines.extend(
+            [
+                f"[bold]Location:[/bold] {config.get('hetzner_location', '-')}",
+                f"[bold]Server:[/bold] {config.get('hetzner_server_type', '-')}",
+            ]
+        )
     elif provider == "aws":
-        lines.extend([
-            f"[bold]Region:[/bold] {config.get('aws_region', '-')}",
-            f"[bold]Instance:[/bold] {config.get('aws_instance_type', '-')}",
-        ])
+        lines.extend(
+            [
+                f"[bold]Region:[/bold] {config.get('aws_region', '-')}",
+                f"[bold]Instance:[/bold] {config.get('aws_instance_type', '-')}",
+            ]
+        )
     elif provider == "digitalocean":
-        lines.extend([
-            f"[bold]Region:[/bold] {config.get('digitalocean_region', '-')}",
-            f"[bold]Size:[/bold] {config.get('digitalocean_size', '-')}",
-        ])
+        lines.extend(
+            [
+                f"[bold]Region:[/bold] {config.get('digitalocean_region', '-')}",
+                f"[bold]Size:[/bold] {config.get('digitalocean_size', '-')}",
+            ]
+        )
 
     # Common options
     if config.get("enable_firewall"):
@@ -120,8 +125,13 @@ def print_config_summary(name: str, config: Dict[str, Any]) -> None:
         fw_text = f"enabled ({len(ips)} IPs)" if ips else "enabled (all IPs)"
         lines.append(f"[bold]Firewall:[/bold] {fw_text}")
 
+    if config.get("enable_autocoder"):
+        lines.append("[bold]AutoCoder:[/bold] enabled (autonomous coding agent)")
+
     if config.get("enable_letsencrypt"):
-        lines.append(f"[bold]TLS:[/bold] Let's Encrypt ({config.get('domain_name', '-')})")
+        lines.append(
+            f"[bold]TLS:[/bold] Let's Encrypt ({config.get('domain_name', '-')})"
+        )
 
     panel = Panel("\n".join(lines), title="Configuration Summary", border_style="cyan")
     console.print(panel)

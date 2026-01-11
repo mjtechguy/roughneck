@@ -1,13 +1,6 @@
-{% if enable_letsencrypt | default(false) | bool %}
-bind-addr: 127.0.0.1:10000
-{% else %}
-bind-addr: 0.0.0.0:10000
-{% endif %}
+# code-server config - Caddy handles TLS and external access
+bind-addr: 127.0.0.1:10080
 auth: password
 password: {{ codeserver_password }}
-{% if enable_letsencrypt | default(false) | bool %}
 cert: false
-{% else %}
-cert: true
-{% endif %}
 user-data-dir: /home/{{ roughneck_user }}/.local/share/code-server

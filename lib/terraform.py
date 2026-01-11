@@ -102,11 +102,25 @@ def init(name: str) -> bool:
     return result.returncode == 0
 
 
-def apply(name: str) -> bool:
-    """Run terraform apply for a deployment."""
+class ApplyResult:
+    """Result of a terraform apply operation."""
+
+    def __init__(self, success: bool, error: str = ""):
+        self.success = success
+        self.error = error
+
+    def __bool__(self) -> bool:
+        return self.success
+
+
+def apply(name: str) -> ApplyResult:
+    """Run terraform apply for a deployment.
+
+    Streams output in real-time while capturing it for error detection.
+    """
     cmd = find_terraform_cmd()
     if not cmd:
-        return False
+        return ApplyResult(False, "Terraform/tofu not found")
 
     deploy_dir = get_deployment_dir(name)
     tfvars_path = deploy_dir / "terraform.tfvars"
@@ -114,7 +128,8 @@ def apply(name: str) -> bool:
     tfvars = parse_tfvars(tfvars_path)
     provider = tfvars.get("provider_name", "hetzner")
 
-    result = subprocess.run(
+    # Use Popen to stream output while capturing for error detection
+    process = subprocess.Popen(
         [
             cmd,
             "apply",
@@ -125,8 +140,24 @@ def apply(name: str) -> bool:
         ],
         cwd=get_deployment_provider_dir(name, provider),
         env=get_provider_env(name),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,  # Merge stderr into stdout
+        text=True,
     )
-    return result.returncode == 0
+
+    # Stream output while capturing it
+    output_lines = []
+    for line in process.stdout:
+        print(line, end="")  # Stream to terminal
+        output_lines.append(line)
+
+    process.wait()
+    full_output = "".join(output_lines)
+
+    if process.returncode == 0:
+        return ApplyResult(True)
+
+    return ApplyResult(False, full_output)
 
 
 def destroy(name: str) -> bool:

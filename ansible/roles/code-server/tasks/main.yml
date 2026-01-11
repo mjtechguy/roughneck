@@ -10,9 +10,26 @@
   args:
     creates: /usr/bin/code-server
 
-- name: Generate secure random password for code-server
+- name: Check if password file exists
+  stat:
+    path: /home/{{ roughneck_user }}/.config/code-server/password.txt
+  register: password_file
+
+- name: Read existing password
+  slurp:
+    src: /home/{{ roughneck_user }}/.config/code-server/password.txt
+  register: existing_password
+  when: password_file.stat.exists
+
+- name: Use existing password if available
+  set_fact:
+    codeserver_password: "{{ existing_password.content | b64decode | trim }}"
+  when: password_file.stat.exists and existing_password.content is defined
+
+- name: Generate new password for initial deployment
   set_fact:
     codeserver_password: "{{ lookup('password', '/dev/null chars=ascii_letters,digits length=24') }}"
+  when: not password_file.stat.exists
 
 - name: Create code-server config directory
   file:
@@ -61,19 +78,19 @@
 
 - name: Enable and start code-server service
   systemd:
-    name: code-server
+    name: code-server@roughneck
     enabled: true
     state: started
 
 - name: Restart code-server if config changed
   systemd:
-    name: code-server
+    name: code-server@roughneck
     state: restarted
   when: codeserver_config.changed
 
 - name: Wait for code-server to start
   wait_for:
-    port: 10000
+    port: 10080
     delay: 2
     timeout: 30
 
@@ -83,8 +100,7 @@
       - "=========================================="
       - "code-server Installation Complete"
       - "=========================================="
-      - "URL: http://{{ ansible_default_ipv4.address }}:10000"
+      - "Internal port: 10080 (Caddy proxies to external)"
+      - "External URL: https://<server-ip>:10000"
       - "Password: {{ codeserver_password }}"
-      - "=========================================="
-      - "Access your web-based IDE in your browser"
       - "=========================================="

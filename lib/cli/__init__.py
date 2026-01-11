@@ -12,6 +12,7 @@ from .commands import (
     provision,
     ssh_cmd,
     update,
+    validate,
 )
 from .menu import interactive_menu
 
@@ -27,6 +28,7 @@ app.command("new", help="Create a new deployment")(new)
 app.command("deploy", help="Deploy/resume an existing deployment")(deploy)
 app.command("provision", help="Re-run ansible provisioning on a deployment")(provision)
 app.command("update", help="Update packages and tools on a deployment")(update)
+app.command("validate", help="Validate deployment health and services")(validate)
 app.command("destroy", help="Destroy a deployment")(destroy)
 app.command("edit", help="Edit a deployment's configuration")(edit)
 app.command("list", help="List all deployments")(list_deployments)

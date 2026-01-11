@@ -1,0 +1,17 @@
+[Unit]
+Description=AutoCoder - Autonomous Coding Agent
+After=network.target
+
+[Service]
+Type=simple
+User={{ roughneck_user }}
+Group={{ roughneck_user }}
+WorkingDirectory=/home/{{ roughneck_user }}/autocoder
+ExecStart=/home/{{ roughneck_user }}/autocoder/start-autocoder.sh
+Restart=on-failure
+RestartSec=5
+Environment=HOME=/home/{{ roughneck_user }}
+Environment=PATH=/home/{{ roughneck_user }}/.local/bin:/usr/local/bin:/usr/bin:/bin
+
+[Install]
+WantedBy=multi-user.target

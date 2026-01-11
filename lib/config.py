@@ -48,10 +48,20 @@ class DeploymentConfig:
     enable_beads: bool = False
     enable_k9s: bool = False
     enable_systemd_services: bool = False
+    enable_autocoder: bool = False
 
     # TLS Configuration
     enable_letsencrypt: bool = False
     domain_name: str = ""
+    tls_mode: str = "http01"  # "http01" or "dns01"
+    dns_provider: str = ""  # "cloudflare", "route53", "digitalocean", "hetzner"
+
+    # DNS Provider API credentials (for TLS certificate provisioning)
+    cloudflare_api_token: str = ""
+    route53_access_key: str = ""
+    route53_secret_key: str = ""
+    digitalocean_dns_token: str = ""
+    hetzner_dns_token: str = ""
 
 
 def get_root_dir() -> Path:
@@ -216,11 +226,30 @@ def write_tfvars(name: str, config: DeploymentConfig) -> None:
         f"enable_beads            = {str(config.enable_beads).lower()}",
         f"enable_k9s              = {str(config.enable_k9s).lower()}",
         f"enable_systemd_services = {str(config.enable_systemd_services).lower()}",
+        f"enable_autocoder        = {str(config.enable_autocoder).lower()}",
         "",
         "# TLS Configuration",
         f"enable_letsencrypt = {str(config.enable_letsencrypt).lower()}",
         f'domain_name        = "{config.domain_name}"',
+        f'tls_mode           = "{config.tls_mode}"',
+        f'dns_provider       = "{config.dns_provider}"',
     ])
+
+    # DNS credentials (only if TLS enabled and dns_provider set)
+    if config.enable_letsencrypt and config.dns_provider:
+        lines.extend([
+            "",
+            "# DNS Provider Credentials",
+        ])
+        if config.dns_provider == "cloudflare":
+            lines.append(f'cloudflare_api_token = "{config.cloudflare_api_token}"')
+        elif config.dns_provider == "route53":
+            lines.append(f'route53_access_key = "{config.route53_access_key}"')
+            lines.append(f'route53_secret_key = "{config.route53_secret_key}"')
+        elif config.dns_provider == "digitalocean":
+            lines.append(f'digitalocean_dns_token = "{config.digitalocean_dns_token}"')
+        elif config.dns_provider == "hetzner":
+            lines.append(f'hetzner_dns_token = "{config.hetzner_dns_token}"')
 
     tfvars_path = deploy_dir / "terraform.tfvars"
     with open(tfvars_path, "w") as f:
@@ -296,8 +325,10 @@ def get_ssh_user(name: str) -> str:
         except OSError:
             pass
 
-    # Fall back to provider defaults
+    # Fall back to provider defaults.
+    # AWS AMIs use "ubuntu" as the default user, while Hetzner and DigitalOcean
+    # images use "root" by default.
     provider = get_deployment_provider(name)
     if provider == "aws":
         return "ubuntu"
-    return "root"  # Hetzner, DigitalOcean
+    return "root"

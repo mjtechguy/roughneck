@@ -8,7 +8,7 @@ from .prompts import STYLE
 
 def interactive_menu() -> None:
     """Show interactive menu and run selected command."""
-    from .output import console, header
+    from .output import console
 
     console.print()
     console.print("[bold cyan]=== Roughneck ===[/bold cyan]")
@@ -21,6 +21,7 @@ def interactive_menu() -> None:
             Choice("Create new deployment", value="new"),
             Choice("Re-provision deployment", value="provision"),
             Choice("Update packages/tools", value="update"),
+            Choice("Validate deployment", value="validate"),
             Choice("Edit configuration", value="edit"),
             Choice("Destroy deployment", value="destroy"),
             Separator(),
@@ -45,6 +46,7 @@ def interactive_menu() -> None:
         "new": commands.new,
         "provision": commands.provision,
         "update": commands.update,
+        "validate": commands.validate,
         "edit": commands.edit,
         "destroy": commands.destroy,
         "list": commands.list_deployments,

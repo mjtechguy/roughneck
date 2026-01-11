@@ -5,8 +5,26 @@ All notable changes to Roughneck are documented in this file.
 ## [Unreleased]
 
 ### Added
+- `validate` command to verify deployment health and service status
+  - Checks systemd services (Docker, code-server, Caddy, AutoCoder)
+  - Verifies port availability for all services
+  - Makes HTTP requests to verify endpoints respond
+  - Tests Docker can run containers
+  - Validates CLI tools are installed (Claude, Codex, Gemini)
+- Validation runs automatically after successful deployment
 - `provision` command to re-run ansible on existing deployments without terraform
 - tmux scrollback configuration with mouse support and 50,000 line history
+- AutoCoder role for autonomous coding agent support
+
+### Changed
+- Standardized Caddy `basic_auth` directive (was inconsistent `basicauth` vs `basic_auth`)
+- Refactored CLI helpers to use explicit error passing instead of global state
+- Simplified DNS provider selection logic
+- Removed redundant IP checks in management commands
+
+### Fixed
+- code-server service now properly enabled on boot
+- Validation accepts "activating" state for services still starting up
 
 ## [0.3.0] - 2025-01-09
 
