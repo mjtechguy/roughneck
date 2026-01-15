@@ -49,6 +49,8 @@ class DeploymentConfig:
     enable_k9s: bool = False
     enable_systemd_services: bool = False
     enable_autocoder: bool = False
+    enable_glm: bool = False
+    zai_key: str = ""
 
     # TLS Configuration
     enable_letsencrypt: bool = False
@@ -227,6 +229,8 @@ def write_tfvars(name: str, config: DeploymentConfig) -> None:
         f"enable_k9s              = {str(config.enable_k9s).lower()}",
         f"enable_systemd_services = {str(config.enable_systemd_services).lower()}",
         f"enable_autocoder        = {str(config.enable_autocoder).lower()}",
+        f"enable_glm              = {str(config.enable_glm).lower()}",
+        f'zai_key                 = "{config.zai_key}"',
         "",
         "# TLS Configuration",
         f"enable_letsencrypt = {str(config.enable_letsencrypt).lower()}",

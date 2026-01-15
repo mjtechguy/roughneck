@@ -53,8 +53,10 @@ def run_playbook(name: str) -> bool:
             ("enable_beads", cfg.enable_beads),
             ("enable_k9s", cfg.enable_k9s),
             ("enable_systemd_services", cfg.enable_systemd_services),
+            ("enable_glm", cfg.enable_glm),
             ("enable_letsencrypt", cfg.enable_letsencrypt),
             ("domain_name", cfg.domain_name),
+            ("zai_key", cfg.zai_key),
         ]
         for flag_name, flag_value in feature_flags:
             if flag_value:  # Only pass truthy values
@@ -144,6 +146,7 @@ def run_validate(name: str) -> bool:
             ("enable_beads", cfg.enable_beads),
             ("enable_k9s", cfg.enable_k9s),
             ("enable_systemd_services", cfg.enable_systemd_services),
+            ("enable_glm", cfg.enable_glm),
             ("enable_letsencrypt", cfg.enable_letsencrypt),
             ("domain_name", cfg.domain_name),
         ]

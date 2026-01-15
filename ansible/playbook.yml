@@ -11,6 +11,8 @@
     enable_beads: false
     enable_k9s: false
     enable_autocoder: false
+    enable_glm: false
+    zai_key: ""
 
   roles:
     # Core system setup
@@ -39,6 +41,9 @@
     # AutoCoder (requires Node.js from claude role)
     - role: autocoder
       when: enable_autocoder | default(false) | bool
+    # GLM/ZAI Claude integration
+    - role: glm
+      when: enable_glm | default(false) | bool
     - setup-wizard
     # Optional: Gas Town ecosystem (disabled by default)
     - role: beads

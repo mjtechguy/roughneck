@@ -131,8 +131,18 @@ resource "local_file" "ansible_inventory" {
     enable_beads            = var.enable_beads
     enable_k9s              = var.enable_k9s
     enable_systemd_services = var.enable_systemd_services
+    enable_autocoder        = var.enable_autocoder
+    enable_glm              = var.enable_glm
+    zai_key                 = var.zai_key
     enable_letsencrypt      = var.enable_letsencrypt
     domain_name             = var.domain_name
+    tls_mode                = var.tls_mode
+    dns_provider            = var.dns_provider
+    cloudflare_api_token    = var.cloudflare_api_token
+    route53_access_key      = var.route53_access_key
+    route53_secret_key      = var.route53_secret_key
+    digitalocean_dns_token  = var.digitalocean_dns_token
+    hetzner_dns_token       = var.hetzner_dns_token
   })
   filename = "${var.deployment_dir}/inventory.ini"
 }

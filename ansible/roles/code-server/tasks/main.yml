@@ -78,13 +78,13 @@
 
 - name: Enable and start code-server service
   systemd:
-    name: code-server@roughneck
+    name: code-server
     enabled: true
     state: started
 
 - name: Restart code-server if config changed
   systemd:
-    name: code-server@roughneck
+    name: code-server
     state: restarted
   when: codeserver_config.changed
 

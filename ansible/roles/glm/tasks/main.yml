@@ -1,0 +1,64 @@
+---
+# =============================================================================
+# GLM/ZAI Claude Integration Role
+# =============================================================================
+# Sets up the glmclaude wrapper script for using Claude with Z.AI API backend.
+# Requires the zai_key variable to be set.
+
+- name: Create glmclaude script
+  copy:
+    dest: /usr/local/bin/glmclaude
+    mode: '0755'
+    content: |
+      #!/usr/bin/env bash
+      set -euo pipefail
+
+      unset ANTHROPIC_API_KEY
+      ANTHROPIC_BASE_URL=https://api.z.ai/api/anthropic \
+      ANTHROPIC_AUTH_TOKEN="$ZAI_KEY" \
+      API_TIMEOUT_MS=3000000 \
+      exec claude --dangerously-skip-permissions
+
+- name: Add ZAI_KEY to user environment
+  lineinfile:
+    path: /home/{{ roughneck_user }}/.bashrc
+    line: 'export ZAI_KEY="{{ zai_key }}"'
+    regexp: '^export ZAI_KEY='
+    create: yes
+    owner: "{{ roughneck_user }}"
+    group: "{{ roughneck_user }}"
+  when: zai_key | default('') | length > 0
+
+- name: Add ZAI_KEY to zsh environment
+  lineinfile:
+    path: /home/{{ roughneck_user }}/.zshrc
+    line: 'export ZAI_KEY="{{ zai_key }}"'
+    regexp: '^export ZAI_KEY='
+    create: yes
+    owner: "{{ roughneck_user }}"
+    group: "{{ roughneck_user }}"
+  when: zai_key | default('') | length > 0
+
+- name: Create system-wide ZAI environment file
+  copy:
+    dest: /etc/profile.d/zai.sh
+    mode: '0644'
+    content: |
+      export ZAI_KEY="{{ zai_key }}"
+  when: zai_key | default('') | length > 0
+
+- name: Verify glmclaude installation
+  command: which glmclaude
+  register: glmclaude_check
+  changed_when: false
+  failed_when: false
+
+- name: Display GLM installation status
+  debug:
+    msg:
+      - "=========================================="
+      - "GLM/ZAI Claude Integration Installed"
+      - "=========================================="
+      - "Script location: /usr/local/bin/glmclaude"
+      - "Run 'glmclaude' to start Claude with Z.AI backend"
+      - "=========================================="

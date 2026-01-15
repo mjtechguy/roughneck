@@ -217,6 +217,11 @@ def prompt_new_config(name: str) -> config.DeploymentConfig:
             "Enable systemd services?", default=False
         )
 
+    # GLM/ZAI Claude integration
+    cfg.enable_glm = prompts.confirm("Enable GLM/ZAI Claude integration?", default=False)
+    if cfg.enable_glm:
+        cfg.zai_key = prompts.password("ZAI API key") or ""
+
     # TLS Configuration
     cfg.enable_letsencrypt = prompts.confirm("Enable Let's Encrypt TLS?", default=False)
     if cfg.enable_letsencrypt:

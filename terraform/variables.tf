@@ -165,6 +165,25 @@ variable "enable_systemd_services" {
   default     = false
 }
 
+variable "enable_autocoder" {
+  description = "Enable AutoCoder autonomous coding agent"
+  type        = bool
+  default     = false
+}
+
+variable "enable_glm" {
+  description = "Enable GLM/ZAI Claude integration"
+  type        = bool
+  default     = false
+}
+
+variable "zai_key" {
+  description = "ZAI API key for GLM Claude integration"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
 # =============================================================================
 # TLS Configuration
 # =============================================================================
